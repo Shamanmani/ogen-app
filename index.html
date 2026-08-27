@@ -258,3 +258,242 @@ display:block;
 text-align:center;
 font-family:"Frank Ruhl Libre",Georgia,serif;
 font-size:30px;
+
+background:var(--pom-wash);
+border-radius:4px;
+padding:12px 20px;
+margin:0 auto 28px;
+max-width:fit-content;
+}
+.from-line{
+display:inline-block;
+font-size:19px;
+font-weight:600;
+letter-spacing:.06em;
+color:var(--pom);
+background:var(--pom-wash);
+padding:8px 18px;
+border-radius:3px;
+margin-bottom:22px;
+}
+.rec-btn{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:12px;
+width:100%;
+min-height:180px;
+border-radius:4px;
+background:var(--pom);
+color:var(--pom-ink);
+font-size:34px;
+font-weight:700;
+box-shadow:0 3px 0 #6D1C16;
+}
+.rec-btn.recording{background:var(--moss);box-shadow:0 3px 0 #2E3D1F}
+.rec-dot{width:26px;height:26px;border-radius:50%;background:currentColor}
+.rec-btn.recording .rec-dot{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.rec-time{font-size:22px;font-variant-numeric:tabular-nums;opacity:.9}
+.event{
+display:flex;
+flex-direction:column;
+align-items:flex-start;
+gap:6px;
+width:100%;
+min-height:var(--tap);
+padding:24px 28px;
+text-align:right;
+background:var(--raised);
+border:2px solid var(--rule);
+border-radius:4px;
+box-shadow:0 2px 0 var(--shadow);
+transition:transform .12s ease;
+}
+.event:active{transform:translateY(2px);box-shadow:none}
+.event.is-right{background:var(--moss-wash);border-color:var(--moss)}
+.event-title{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:30px;font-weight:500;line-height:1.25}
+.event-year{font-size:20px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.orient{
+padding:24px 28px;
+margin:0 0 36px;
+background:var(--raised);
+border:2px solid var(--rule);
+border-inline-start:6px solid var(--moss);
+border-radius:4px;
+}
+.orient-day{
+font-family:"Frank Ruhl Libre",Georgia,serif;
+font-size:clamp(34px,6vw,46px);
+font-weight:700;line-height:1.1;margin:0;
+}
+.orient-date{font-size:23px;color:var(--ink-soft);margin:4px 0 0;font-variant-numeric:tabular-nums}
+.orient-note{font-size:24px;margin:14px 0 0;color:var(--ink)}
+.orient-note:empty{display:none}
+.cues{
+display:flex;flex-direction:column;gap:12px;
+margin:0 0 28px;padding:0;
+font-size:24px;color:var(--ink-soft);
+}
+.cues:empty{display:none}
+.cues span{
+background:var(--pom-wash);color:var(--pom);
+padding:14px 22px;border-radius:4px;
+font-weight:600;
+}
+.answer{
+font-family:"Frank Ruhl Libre",Georgia,serif;
+font-size:clamp(44px,9vw,64px);
+font-weight:700;text-align:center;line-height:1.1;
+margin:0 0 28px;padding:22px;
+background:var(--moss-wash);color:var(--moss);
+border-radius:4px;
+}
+.seq{list-style:none;margin:0 0 28px;padding:0;display:flex;flex-direction:column;gap:10px}
+.seq:empty{display:none}
+.seq li{
+display:flex;align-items:center;gap:18px;
+padding:16px 22px;
+background:var(--pom-wash);
+border:2px solid var(--pom);
+border-radius:4px;
+font-family:"Frank Ruhl Libre",Georgia,serif;
+font-size:26px;
+}
+.seq li .n{
+font-weight:700;color:var(--pom);min-width:28px;
+font-variant-numeric:tabular-nums;
+}
+.seq li.ok{background:var(--moss-wash);border-color:var(--moss)}
+.seq li.ok .n{color:var(--moss)}
+.seq li.off{background:var(--raised);border-color:var(--rule)}
+.seq li.off .n{color:var(--ink-soft)}
+.seq li .yr{margin-inline-start:auto;font-family:"Assistant",sans-serif;font-size:19px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.family-link{
+margin-top:auto;
+padding-top:48px;
+text-align:center;
+font-size:15px;
+color:var(--ink-soft);
+opacity:.65;
+}
+.family-link button{font-size:15px;text-decoration:underline;padding:8px}
+.panel-h{
+font-family:"Frank Ruhl Libre",Georgia,serif;
+font-size:26px;
+font-weight:700;
+margin:36px 0 14px;
+padding-bottom:8px;
+border-bottom:2px solid var(--rule);
+}
+.panel-note{font-size:17px;color:var(--ink-soft);margin:0 0 18px;line-height:1.6}
+.row{
+display:flex;
+align-items:center;
+gap:16px;
+padding:14px 0;
+border-bottom:1px solid var(--rule);
+}
+.row .thumb{width:62px;height:62px;border-radius:3px;overflow:hidden;border:1px solid var(--rule);flex:none;background:var(--raised)}
+.row .thumb svg,.row .thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.row input[type=text]{
+flex:1;min-width:0;font-family:inherit;font-size:19px;padding:12px 14px;
+border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
+}
+.row .stage-tag{font-size:15px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+.mini{
+font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
+border:2px solid var(--rule);border-radius:3px;background:var(--raised);white-space:nowrap;
+}
+.ruler{
+width:94.5px;height:94.5px;
+flex:none;
+border:2px solid var(--pom);
+background:var(--pom-wash);
+display:flex;align-items:center;justify-content:center;
+font-size:14px;color:var(--pom);text-align:center;line-height:1.3;
+border-radius:3px;
+}
+.cal{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.cal-ctl{display:flex;align-items:center;gap:14px}
+.cal-val{
+font-size:19px;font-weight:700;min-width:64px;text-align:center;
+font-variant-numeric:tabular-nums;
+}
+.hidden{display:none !important}</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ============ HOME ============ -->
+  <section class="screen active" id="s-home">
+    <header class="masthead">
+      <h1 class="wordmark">עוגן</h1>
+      <span class="today" id="today-date"></span>
+    </header>
+    <!--
+      Orientation, never a quiz. Waking takes him a few minutes to place himself,
+      so the first thing on screen answers the question instead of asking it.
+    -->
+    <div class="orient">
+      <p class="orient-day" id="orient-day"></p>
+      <p class="orient-date" id="orient-date"></p>
+      <p class="orient-note" id="orient-note"></p>
+    </div>
+    <p class="greeting" id="greeting">בוקר טוב.</p>
+    <p class="greeting-sub" id="greeting-sub">שלושה דברים מחכים לך היום. אפשר גם רק אחד.</p>
+    <div class="cards">
+      <button class="card" id="card-faces">
+        <span class="card-num">א</span>
+        <span class="card-body">
+          <span class="card-title">פנים</span>
+          <span class="card-note" id="note-faces">שירה, הנינה שלך</span>
+        </span>
+        <span class="card-mark hidden">✓</span>
+      </button>
+      <button class="card" id="card-question">
+        <span class="card-num">ב</span>
+        <span class="card-body">
+          <span class="card-title">שאלה</span>
+          <span class="card-note" id="note-question">דנה שאלה אותך משהו</span>
+        </span>
+        <span class="card-mark hidden">✓</span>
+      </button>
+      <button class="card" id="card-puzzle">
+        <span class="card-num">ג</span>
+        <span class="card-body">
+          <span class="card-title">חידה</span>
+          <span class="card-note" id="note-puzzle">מה קרה קודם?</span>
+        </span>
+        <span class="card-mark hidden">✓</span>
+      </button>
+    </div>
+    <p class="family-link">
+      <button id="open-family">הגדרות משפחה</button>
+    </p>
+  </section>
+  <!-- ============ FACES ============ -->
+  <section class="screen" id="s-faces">
+    <button class="back" data-go="s-home">→ חזרה</button>
+    <p class="stage-line" id="faces-stage">להכיר</p>
+    <div class="portrait-frame">
+      <div class="portrait" id="faces-portrait"></div>
+      <p class="person-name" id="faces-name">שירה</p>
+      <p class="person-rel" id="faces-rel">הנינה שלך</p>
+      <p class="person-fact" id="faces-fact"></p>
+    </div>
+    <p class="hint-name hidden" id="faces-hint"></p>
+    <p class="feedback" id="faces-feedback" aria-live="polite"></p>
+    <div class="stack" id="faces-actions"></div>
+  </section>
+  <!-- ============ QUESTION ============ -->
+  <section class="screen" id="s-question">
+    <button class="back" data-go="s-home">→ חזרה</button>
+    <span class="from-line" id="q-from">מדנה</span>
+    <p class="prompt" id="q-text"></p>
+    <div class="stack">
+      <button class="rec-btn" id="rec-btn">
+        <span class="rec-dot"></span>
+        <span id="rec-label">ספר לי</span>
+        <span class="rec-time" id="rec-time"></span>
+      </button>
