@@ -258,7 +258,7 @@ display:block;
 text-align:center;
 font-family:"Frank Ruhl Libre",Georgia,serif;
 font-size:30px;
-
+color:var(--pom);
 background:var(--pom-wash);
 border-radius:4px;
 padding:12px 20px;
@@ -497,7 +497,7 @@ font-variant-numeric:tabular-nums;
         <span id="rec-label">ספר לי</span>
         <span class="rec-time" id="rec-time"></span>
       </button>
-
+      <p class="feedback" id="q-feedback" aria-live="polite"></p>
       <button class="btn btn-quiet hidden" id="q-play">▶ להאזין שוב</button>
       <button class="btn btn-primary hidden" id="q-send">לשלוח</button>
       <div class="stack" id="q-after"></div>
@@ -666,7 +666,7 @@ return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img"
 + '</svg>';
 }
 function portraitFor(p){
-
+if(p.photo) return '<img src="'+p.photo+'" alt="'+p.name+'">';
 return avatarSVG(AVATARS[p.av % AVATARS.length]);
 }
 function hour(){ return new Date().getHours(); }
@@ -913,7 +913,7 @@ return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2);
 }
 function stopRec(){
 if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
-
+clearInterval(recTimer);
 }
 tap($("rec-btn"), function(){
 if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
@@ -1109,7 +1109,7 @@ save();
 $("puzzle-next").classList.remove("hidden");
 }
 function renderPuzzle(){
-
+if(S.puzzleIndex % 3 !== 2){ renderWord(); return; }
 var items = PUZZLES[S.puzzleIndex % PUZZLES.length].slice();
 puzzleChosen = [];
 $("puzzle-kind").textContent = "סדר";
