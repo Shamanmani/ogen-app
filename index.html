@@ -497,3 +497,172 @@ font-variant-numeric:tabular-nums;
         <span id="rec-label">ספר לי</span>
         <span class="rec-time" id="rec-time"></span>
       </button>
+
+      <button class="btn btn-quiet hidden" id="q-play">▶ להאזין שוב</button>
+      <button class="btn btn-primary hidden" id="q-send">לשלוח</button>
+      <div class="stack" id="q-after"></div>
+    </div>
+  </section>
+  <!-- ============ PUZZLE ============ -->
+  <section class="screen" id="s-puzzle">
+    <button class="back" data-go="s-home">→ חזרה</button>
+    <p class="stage-line" id="puzzle-kind">חידה</p>
+    <p class="prompt" id="puzzle-prompt"></p>
+    <!-- word retrieval -->
+    <div id="mode-word" class="hidden">
+      <p class="cues" id="word-cues"></p>
+      <p class="answer hidden" id="word-answer"></p>
+      <div class="stack" id="word-actions"></div>
+    </div>
+    <!-- sequencing -->
+    <div id="mode-seq" class="hidden">
+      <ol class="seq" id="puzzle-seq"></ol>
+      <div class="stack" id="puzzle-choices"></div>
+    </div>
+    <p class="feedback" id="puzzle-feedback" aria-live="polite"></p>
+    <div class="stack">
+      <button class="btn btn-quiet hidden" id="puzzle-undo">לבטל אחרון</button>
+      <button class="btn btn-primary hidden" id="puzzle-next">עוד אחת</button>
+    </div>
+  </section>
+  <!-- ============ FAMILY PANEL ============ -->
+  <section class="screen" id="s-family">
+    <button class="back" data-go="s-home">→ חזרה</button>
+    <h2 class="panel-h" style="margin-top:0">מה יש היום</h2>
+    <p class="panel-note">מופיע בראש המסך שלו, גדול. כשלוקח כמה דקות להתאפס אחרי שינה, זה מה שעונה לו במקום שהוא יצטרך לשאול. עדכנו כשיש משהו — ביקור, תור לרופא, טלפון שמצפים לו.</p>
+    <div class="row" style="border-bottom:0;padding-top:0">
+      <input type="text" id="today-note" aria-label="מה יש היום" placeholder="למשל: ליאת מגיעה בעשר.">
+    </div>
+    <h2 class="panel-h">האנשים</h2>
+    <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה.</p>
+    <div id="people-rows"></div>
+    <div class="stack" style="margin-top:20px"><button class="mini" id="add-person">+ להוסיף אדם</button></div>
+    <h2 class="panel-h">השאלות</h2>
+    <p class="panel-note">שאלה אחת ליום. הכי טובות הן כאלה שרק הוא יודע לענות עליהן.</p>
+    <div id="q-rows"></div>
+    <div class="stack" style="margin-top:20px"><button class="mini" id="add-question">+ להוסיף שאלה</button></div>
+    <h2 class="panel-h">כיול לפי סרגל</h2>
+    <p class="panel-note">פעם אחת בלבד, ולפני הכל. הצמידו סרגל אמיתי למסך והתאימו את הריבוע עד שהוא מודד בדיוק 25 מ״מ בשני הכיוונים. כל הכפתורים באפליקציה נגזרים מהמדידה הזו — בלעדיה הם יוצאים כחמישית קטנים מדי על טאבלט 10 אינץ׳.</p>
+    <div class="cal">
+      <div class="ruler" id="cal-square">25 מ״מ<br>על 25 מ״מ</div>
+      <div class="cal-ctl">
+        <button class="mini" id="cal-down">− קטן יותר</button>
+        <span class="cal-val" id="cal-val">100%</span>
+        <button class="mini" id="cal-up">+ גדול יותר</button>
+      </div>
+    </div>
+    <h2 class="panel-h">איפוס</h2>
+    <p class="panel-note">מוחק את כל ההתקדמות ומחזיר את התוכן לדוגמאות ההתחלתיות.</p>
+    <div class="stack"><button class="mini" id="reset-all">לאפס הכל</button></div>
+  </section>
+</div>
+<script>(function(){
+"use strict";
+var KEY = "ogen.v1";
+var AVATARS = [
+{bg:"#DCE0CE", skin:"#E8C9A8", hair:"#3A2E22", style:"long",  glasses:false, beard:false},
+{bg:"#E2D8CC", skin:"#D8B08A", hair:"#8C8378", style:"short", glasses:true,  beard:true },
+{bg:"#D6DCD2", skin:"#EFD6BC", hair:"#C4A05C", style:"long",  glasses:true,  beard:false},
+{bg:"#E4DAD4", skin:"#C99A72", hair:"#241D17", style:"short", glasses:false, beard:false},
+{bg:"#D9DDD4", skin:"#E8C9A8", hair:"#A8A29A", style:"bun",   glasses:true,  beard:false},
+{bg:"#DFD9C8", skin:"#D8B08A", hair:"#4A3B2A", style:"short", glasses:false, beard:true }
+];
+function defaults(){
+return {
+people:[
+{id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:0, due:0, misses:0, reps:0},
+{id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:0, due:0, misses:0, reps:0},
+{id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:0, due:0, misses:0, reps:0},
+{id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:0, due:0, misses:0, reps:0}
+],
+questions:[
+{id:"q1", from:"דנה", text:"איפה למדת לרכוב על אופניים?",           done:false},
+{id:"q2", from:"אורי", text:"מה הדבר הראשון שקנית מכסף שהרווחת?",   done:false},
+{id:"q3", from:"דנה", text:"איך הכרת את אמא?",                      done:false},
+{id:"q4", from:"שירה", text:"איזה משחק שיחקת כשהיית ילד?",           done:false}
+],
+qIndex:0,
+puzzleIndex:0,
+wordIndex:0,
+todayNote:"ליאת מגיעה בעשר. דנה מתקשרת בערב.",
+zoom:1,
+day:"",
+done:{faces:false, question:false, puzzle:false}
+};
+}
+var S;
+try{
+S = JSON.parse(localStorage.getItem(KEY)) || defaults();
+}catch(e){ S = defaults(); }
+if(!S || !S.people || !S.people.length) S = defaults();
+S.people.forEach(function(p){
+if(typeof p.misses !== "number") p.misses = 0;
+if(typeof p.reps   !== "number") p.reps   = 0;
+});
+if(typeof S.zoom !== "number" || !(S.zoom > 0)) S.zoom = 1;
+if(typeof S.wordIndex !== "number") S.wordIndex = 0;
+if(typeof S.todayNote !== "string") S.todayNote = "";
+function applyZoom(){
+document.documentElement.style.setProperty("--zoom", String(S.zoom));
+var v = document.getElementById("cal-val");
+if(v) v.textContent = Math.round(S.zoom * 100) + "%";
+}
+function save(){
+try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){/* private mode, quota — the session still works */}
+}
+var todayKey = new Date().toISOString().slice(0,10);
+if(S.day !== todayKey){
+S.day = todayKey;
+S.done = {faces:false, question:false, puzzle:false};
+save();
+}
+function tap(el, fn, ms){
+if(!el) return;
+var gap = (typeof ms === "number") ? ms : 500;
+el.addEventListener("click", function(ev){
+var now = Date.now();
+if(now - (el.__lastTap || 0) < gap) return;
+el.__lastTap = now;
+fn(ev);
+});
+}
+function tapFast(el, fn){ tap(el, fn, 120); }
+function $(id){ return document.getElementById(id); }
+function show(id){
+var all = document.querySelectorAll(".screen");
+for(var i=0;i<all.length;i++) all[i].classList.remove("active");
+$(id).classList.add("active");
+window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-go]").forEach(function(b){
+tap(b, function(){
+var dest = b.getAttribute("data-go");
+if(dest === "s-home") renderHome();
+show(dest);
+});
+});
+function avatarSVG(cfg){
+var hair = "";
+if(cfg.style === "long"){
+hair = '<path d="M28 46c0-16 10-26 22-26s22 10 22 26v26c0 4-3 6-6 6V50c0-9-7-14-16-14s-16 5-16 14v28c-3 0-6-2-6-6z" fill="'+cfg.hair+'"/>';
+} else if(cfg.style === "bun"){
+hair = '<circle cx="50" cy="16" r="8" fill="'+cfg.hair+'"/><path d="M30 46c0-13 9-22 20-22s20 9 20 22v3c-4-9-11-13-20-13s-16 4-20 13z" fill="'+cfg.hair+'"/>';
+} else {
+hair = '<path d="M30 46c0-13 9-22 20-22s20 9 20 22v2c-5-8-11-12-20-12s-15 4-20 12z" fill="'+cfg.hair+'"/>';
+}
+var glasses = cfg.glasses
+? '<g fill="none" stroke="#3A3A32" stroke-width="2.4"><circle cx="40" cy="52" r="9"/><circle cx="60" cy="52" r="9"/><path d="M49 52h2"/><path d="M31 51l-5 1"/><path d="M69 51l5 1"/></g>'
+: "";
+var beard = cfg.beard
+? '<path d="M33 60c0 12 8 20 17 20s17-8 17-20c0 8-8 11-17 11s-17-3-17-11z" fill="'+cfg.hair+'" opacity=".85"/>'
+: "";
+return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="דיוקן">'
++ '<rect width="100" height="100" fill="'+cfg.bg+'"/>'
++ '<path d="M18 100c0-17 14-26 32-26s32 9 32 26z" fill="#8C8C7E"/>'
++ '<ellipse cx="50" cy="52" rx="20" ry="24" fill="'+cfg.skin+'"/>'
++ beard + hair + glasses
++ '<circle cx="42" cy="52" r="2.2" fill="#2B2B24"/><circle cx="58" cy="52" r="2.2" fill="#2B2B24"/>'
++ '<path d="M44 64c3 2.5 9 2.5 12 0" stroke="#2B2B24" stroke-width="2" fill="none" stroke-linecap="round"/>'
++ '</svg>';
+}
+function portraitFor(p){
