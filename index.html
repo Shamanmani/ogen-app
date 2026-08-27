@@ -913,3 +913,199 @@ return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2);
 }
 function stopRec(){
 if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
+
+}
+tap($("rec-btn"), function(){
+if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
+if(!navigator.mediaDevices || !window.MediaRecorder){
+$("q-feedback").className = "feedback gentle";
+$("q-feedback").textContent = "אין כאן מיקרופון, אבל ההקלטה תעבוד על הטאבלט.";
+$("q-send").classList.remove("hidden");
+return;
+}
+navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+chunks = [];
+mediaRec = new MediaRecorder(stream);
+mediaRec.ondataavailable = function(e){ if(e.data.size) chunks.push(e.data); };
+mediaRec.onstop = function(){
+stream.getTracks().forEach(function(t){ t.stop(); });
+if(recURL) URL.revokeObjectURL(recURL);
+recURL = URL.createObjectURL(new Blob(chunks, {type:"audio/webm"}));
+$("rec-btn").classList.remove("recording");
+$("rec-label").textContent = "להקליט שוב";
+$("q-feedback").className = "feedback good";
+$("q-feedback").textContent = "נשמר.";
+$("q-play").classList.remove("hidden");
+$("q-send").classList.remove("hidden");
+};
+mediaRec.start();
+recStart = Date.now();
+$("rec-btn").classList.add("recording");
+$("rec-label").textContent = "סיימתי";
+recTimer = setInterval(function(){
+$("rec-time").textContent = fmtTime(Date.now() - recStart);
+}, 500);
+}).catch(function(){
+$("q-feedback").className = "feedback gentle";
+$("q-feedback").textContent = "לא הצלחנו להפעיל את המיקרופון. אפשר לנסות שוב.";
+$("q-send").classList.remove("hidden");
+});
+});
+tap($("q-play"), function(){
+if(!recURL) return;
+new Audio(recURL).play().catch(function(){});
+});
+tap($("q-send"), function(){
+var q = currentQuestion();
+if(q) q.done = true;
+S.done.question = true;
+save();
+var fb = $("q-feedback");
+fb.className = "feedback good";
+fb.textContent = "נשלח" + (q ? " ל" + q.from : "") + ".";
+$("rec-btn").classList.add("hidden");
+$("q-play").classList.add("hidden");
+$("q-send").classList.add("hidden");
+var box = $("q-after");
+box.innerHTML = "";
+var next = currentQuestion();
+if(next){
+var more = document.createElement("button");
+more.className = "btn btn-quiet";
+more.textContent = next.from + " שאל אותך משהו — לענות גם לו?";
+tap(more, function(){ renderQuestion(); });
+box.appendChild(more);
+}
+var done = document.createElement("button");
+done.className = "btn btn-primary";
+done.textContent = "מספיק להיום";
+tap(done, function(){ renderHome(); show("s-home"); });
+box.appendChild(done);
+});
+var PUZZLES = [
+[{t:"הכרזת העצמאות",y:1948},{t:"מבצע קדש",y:1956},{t:"משפט אייכמן",y:1961},{t:"מלחמת ששת הימים",y:1967}],
+[{t:"המוביל הארצי נחנך",y:1964},{t:"הנחיתה על הירח",y:1969},{t:"האולימפיאדה במינכן",y:1972},{t:"מבצע אנטבה",y:1976}],
+[{t:"ביקור סאדאת בירושלים",y:1977},{t:"מלחמת לבנון הראשונה",y:1982},{t:"נפילת חומת ברלין",y:1989},{t:"הסכם אוסלו",y:1993}],
+[{t:"סוף מלחמת העולם השנייה",y:1945},{t:"תוכנית החלוקה באו״ם",y:1947},{t:"תחילת הצנע",y:1949},{t:"הסכם השילומים",y:1952}],
+[{t:"עלית יצחק רבין לראשות הממשלה",y:1974},{t:"המהפך של בגין",y:1977},{t:"הסכם השלום עם מצרים",y:1979},{t:"מבצע משה",y:1984}]
+];
+var puzzleChosen = [];
+var WORDS = [
+{c:"כלי זכוכית שמניחים בו פרחים",            a:"אגרטל"},
+{c:"רהיט עם מדפים לספרים",                   a:"כוננית"},
+{c:"הבד שתולים על החלון",                    a:"וילון"},
+{c:"הכלי שמסננים בו את התה",                 a:"מסננת"},
+{c:"כף גדולה ועמוקה שמגישים בה מרק",         a:"מצקת"},
+{c:"הכלי הארוך שמשטחים בו בצק",              a:"מערוך"},
+{c:"המכשיר שמשחימים בו פרוסות לחם",          a:"מצנם"},
+{c:"הכלי המחוספס שמגררים עליו ירקות",        a:"פומפייה"},
+{c:"המדף הצר שמתחת לחלון",                   a:"אדן"},
+{c:"הצינור שמוליך מי גשם מהגג למטה",         a:"מרזב"},
+{c:"החדר התת־קרקעי שבו מאחסנים יין",         a:"מרתף"},
+{c:"המבנה שבו מאחסנים תבואה בחווה",          a:"אסם"},
+{c:"הכיסוי שפורשים על שולחן",                a:"מפה"},
+{c:"כלי לחיתוך עץ, עם שיניים",               a:"מסור"},
+{c:"הכלי שבודקים בו אם משטח ישר",            a:"פלס"},
+{c:"הכלי שמהדק חפץ כדי לעבוד עליו",          a:"מלחציים"},
+{c:"כלי חד שמגלפים בו עץ או אבן",            a:"אזמל"},
+{c:"הכלי שמסובבים בו ברגים",                 a:"מברג"},
+{c:"האדם שתופר בגדים לפי מידה",              a:"חייט"},
+{c:"האדם שמייצר רהיטים מעץ",                 a:"נגר"},
+{c:"האדם שמתקן נעליים",                      a:"סנדלר"},
+{c:"האדם שמתקן צינורות בבית",                a:"שרברב"},
+{c:"האדם שמתקן שעונים",                      a:"שען"},
+{c:"האדם שעובד בזהב ובכסף",                  a:"צורף"},
+{c:"האדם שמחבר מתכות באש",                   a:"רתך"},
+{c:"האדם שמנצח על תזמורת",                   a:"מנצח"},
+{c:"האדם שמתרגם בעל פה בזמן אמת",            a:"מתורגמן"},
+{c:"האדם שבונה קירות מאבן או מלבנים",        a:"בנאי"},
+{c:"התנור הקטן שבישלו עליו פעם, עם נפט",     a:"פרימוס"},
+{c:"הרדיו הקטן והנייד שהיה לכולם",           a:"טרנזיסטור"},
+{c:"המכשיר שהכפילו בו דפים לפני מכונת צילום", a:"סטנסיל"},
+{c:"הכרטיס שניקבו בו נסיעה באוטובוס",        a:"כרטיסייה"},
+{c:"המכשיר שהקליט קול על סליל",              a:"רשמקול"},
+{c:"הרוח החמה והיבשה שבאה מהמדבר",           a:"שרב"},
+{c:"הלחות שיורדת על הצמחים בלילה",           a:"טל"},
+{c:"גשם קל מאוד",                            a:"זרזיף"},
+{c:"כלי עם מיתרים שמנגנים עליו בקשת",        a:"כינור"},
+{c:"כלי נשיפה מפליז, עם צינורות מקופלים",    a:"חצוצרה"},
+{c:"כלי נגינה עם שמונים ושמונה קלידים",      a:"פסנתר"},
+{c:"החלק בצד הראש, בין העין לאוזן",          a:"רקה"},
+{c:"השריר שמפריד בין בית החזה לבטן",         a:"סרעפת"},
+{c:"הפרק שמחבר את כף הרגל לשוק",             a:"קרסול"},
+{c:"המקום שבו עוגנות אוניות",                a:"נמל"},
+{c:"המגדל שמאיר בלילה כדי להזהיר ספינות",    a:"מגדלור"},
+{c:"כלי שמראה איפה נמצא הצפון",              a:"מצפן"},
+{c:"המכשיר שמודד את חום הגוף",               a:"מדחום"},
+{c:"האבן היקרה השקופה והקשה מכולן",          a:"יהלום"}
+];
+var wordItem = null, wordCues = 0;
+function renderWord(){
+wordItem = WORDS[S.wordIndex % WORDS.length];
+wordCues = 0;
+$("puzzle-kind").textContent = "מילים";
+$("puzzle-prompt").textContent = wordItem.c;
+$("mode-word").classList.remove("hidden");
+$("mode-seq").classList.add("hidden");
+$("word-cues").innerHTML = "";
+$("word-answer").classList.add("hidden");
+$("puzzle-feedback").textContent = "";
+$("puzzle-next").classList.add("hidden");
+$("puzzle-undo").classList.add("hidden");
+drawWordActions();
+}
+function drawWordActions(){
+var box = $("word-actions");
+box.innerHTML = "";
+if(wordCues < 3){
+var hint = document.createElement("button");
+hint.className = "btn btn-quiet";
+hint.textContent = "רמז";
+tap(hint, function(){
+wordCues++;
+var s = document.createElement("span");
+if(wordCues === 1)      s.textContent = "המילה בת " + wordItem.a.length + " אותיות.";
+else if(wordCues === 2) s.textContent = "מתחילה באות " + wordItem.a.charAt(0) + ".";
+else                    s.textContent = "מתחילה ב־" + wordItem.a.slice(0,2) + "…";
+$("word-cues").appendChild(s);
+drawWordActions();
+});
+box.appendChild(hint);
+}
+var reveal = document.createElement("button");
+reveal.className = "btn btn-primary";
+reveal.textContent = "לראות את המילה";
+tap(reveal, function(){
+$("word-answer").textContent = wordItem.a;
+$("word-answer").classList.remove("hidden");
+box.innerHTML = "";
+var got = document.createElement("button");
+got.className = "btn btn-primary";
+got.textContent = "זו הייתה המילה שחיפשתי";
+tap(got, function(){ scoreWord(true); });
+var no = document.createElement("button");
+no.className = "btn btn-quiet";
+no.textContent = "לא הגעתי אליה";
+tap(no, function(){ scoreWord(false); });
+box.appendChild(got); box.appendChild(no);
+});
+box.appendChild(reveal);
+}
+function scoreWord(ok){
+var fb = $("puzzle-feedback");
+fb.className = "feedback " + (ok ? "good" : "gentle");
+if(ok){
+fb.textContent = wordCues === 0
+? "בלי רמזים בכלל."
+: "יפה — " + (wordCues === 1 ? "עם רמז אחד." : "עם " + wordCues + " רמזים.");
+} else {
+fb.textContent = wordItem.a + ". היא תחזור.";
+}
+$("word-actions").innerHTML = "";
+S.wordIndex++;
+S.puzzleIndex++;        /* advances the words/sequencing rotation too */
+S.done.puzzle = true;
+save();
+$("puzzle-next").classList.remove("hidden");
+}
+function renderPuzzle(){
