@@ -666,3 +666,250 @@ return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img"
 + '</svg>';
 }
 function portraitFor(p){
+
+return avatarSVG(AVATARS[p.av % AVATARS.length]);
+}
+function hour(){ return new Date().getHours(); }
+function greetText(){
+var h = hour();
+if(h < 11) return "בוקר טוב.";
+if(h < 17) return "צהריים טובים.";
+return "ערב טוב.";
+}
+function duePerson(){
+var now = Date.now();
+var learning = S.people.filter(function(p){ return p.stage < 5; });
+if(learning.length) return learning[0];
+var due = S.people.filter(function(p){ return p.due <= now; });
+return due.length ? due[0] : S.people[0];
+}
+function currentQuestion(){
+var open = S.questions.filter(function(q){ return !q.done; });
+return open.length ? open[0] : null;
+}
+function renderHome(){
+var now = new Date();
+$("today-date").textContent = now.toLocaleDateString("he-IL",{weekday:"long", day:"numeric", month:"long"});
+$("orient-day").textContent  = "היום " + now.toLocaleDateString("he-IL",{weekday:"long"});
+$("orient-date").textContent = now.toLocaleDateString("he-IL",{day:"numeric", month:"long", year:"numeric"});
+$("orient-note").textContent = S.todayNote || "";
+$("greeting").textContent = greetText();
+var p = duePerson();
+$("note-faces").textContent = p ? (p.name + ", " + p.relation) : "אין מה לחזור היום";
+var q = currentQuestion();
+$("note-question").textContent = q ? (q.from + " שאלה אותך משהו") : "אין שאלה חדשה כרגע";
+$("note-puzzle").textContent = (S.puzzleIndex % 3 !== 2)
+? "מילה שצריך למצוא"
+: "ארבעה דברים לסדר לפי הזמן";
+[["card-faces","faces"],["card-question","question"],["card-puzzle","puzzle"]].forEach(function(pair){
+var el = $(pair[0]);
+var isDone = S.done[pair[1]];
+el.classList.toggle("done", isDone);
+el.querySelector(".card-mark").classList.toggle("hidden", !isDone);
+});
+var left = ["faces","question","puzzle"].filter(function(k){ return !S.done[k]; }).length;
+$("greeting-sub").textContent = left === 0
+? "סיימת להיום. תודה — דנה תשמח לשמוע."
+: (left === 3 ? "שלושה דברים מחכים לך היום. אפשר גם רק אחד."
+: "נשארו " + (left === 1 ? "עוד אחד." : "עוד שניים."));
+}
+var STAGE_LABEL = ["להכיר","לקשור","להיזכר","לבדוק","להיזכר","לחזור"];
+var INTERVALS   = [1, 3, 7, 14, 30, 60];   // days
+var facesPerson = null;
+function otherNames(p, n){
+var pool = S.people.filter(function(x){ return x.id !== p.id; })
+.map(function(x){ return x.name; });
+for(var i = pool.length - 1; i > 0; i--){
+var j = Math.floor(Math.random() * (i + 1));
+var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+}
+return pool.slice(0, n);
+}
+function facesDone(actions, label){
+var next = document.createElement("button");
+next.className = "btn btn-primary";
+next.textContent = label || "מספיק להיום";
+tap(next, function(){
+S.done.faces = true;
+save(); renderHome(); show("s-home");
+});
+var more = document.createElement("button");
+more.className = "btn btn-quiet";
+more.textContent = "עוד אחד";
+tap(more, function(){ S.done.faces = true; save(); renderFaces(); });
+actions.appendChild(next);
+actions.appendChild(more);
+}
+function renderFaces(){
+facesPerson = duePerson();
+var p = facesPerson;
+if(!p) return;
+$("faces-stage").textContent = STAGE_LABEL[Math.min(p.stage,5)];
+$("faces-portrait").innerHTML = portraitFor(p);
+$("faces-feedback").textContent = "";
+$("faces-feedback").className = "feedback";
+$("faces-hint").classList.add("hidden");
+var actions = $("faces-actions");
+actions.innerHTML = "";
+var nameEl = $("faces-name"), relEl = $("faces-rel"), factEl = $("faces-fact");
+if(p.stage === 0){
+nameEl.textContent = p.name;
+relEl.textContent  = p.relation;
+factEl.textContent = p.fact;
+var b0 = document.createElement("button");
+b0.className = "btn btn-primary";
+b0.textContent = "הלאה";
+tap(b0, function(){ p.stage = 1; save(); renderFaces(); });
+actions.appendChild(b0);
+return;
+}
+if(p.stage === 1){
+nameEl.textContent = p.name;
+relEl.textContent  = p.relation;
+factEl.textContent = "את מי או מה השם הזה מזכיר לך? אמור לעצמך בקול.";
+var b1 = document.createElement("button");
+b1.className = "btn btn-primary";
+b1.textContent = "הלאה";
+tap(b1, function(){ p.stage = 2; save(); renderFaces(); });
+actions.appendChild(b1);
+return;
+}
+if(p.misses >= 2){
+nameEl.textContent = "מי זה?";
+relEl.textContent  = p.relation;
+factEl.textContent = "";
+$("faces-hint").textContent = p.name;
+$("faces-hint").classList.remove("hidden");
+renderChoices(p, 2, actions);
+return;
+}
+if(p.stage === 3){
+nameEl.textContent = "מי זה?";
+relEl.textContent  = p.relation;
+factEl.textContent = "";
+renderChoices(p, 4, actions);
+return;
+}
+nameEl.textContent = "מי זה?";
+relEl.textContent  = "";
+factEl.textContent = "";
+var reveal = document.createElement("button");
+reveal.className = "btn btn-primary";
+reveal.textContent = "לראות את השם";
+tap(reveal, function(){
+nameEl.textContent = p.name;
+relEl.textContent  = p.relation;
+factEl.textContent = p.fact;
+actions.innerHTML = "";
+var knew = document.createElement("button");
+knew.className = "btn btn-primary";
+knew.textContent = "ידעתי";
+tap(knew, function(){ scoreFace(true, actions); });
+var tot = document.createElement("button");
+tot.className = "btn btn-quiet";
+tot.textContent = "ידעתי, לא יצא לי";
+tap(tot, function(){ scoreFace("tot", actions); });
+var missed = document.createElement("button");
+missed.className = "btn btn-quiet";
+missed.textContent = "לא ידעתי";
+tap(missed, function(){ scoreFace(false, actions); });
+actions.appendChild(knew);
+actions.appendChild(tot);
+actions.appendChild(missed);
+});
+actions.appendChild(reveal);
+}
+function renderChoices(p, count, actions){
+var opts = otherNames(p, count - 1).concat([p.name]);
+for(var i = opts.length - 1; i > 0; i--){
+var j = Math.floor(Math.random() * (i + 1));
+var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+}
+opts.forEach(function(nm){
+var b = document.createElement("button");
+b.className = "choice";
+b.textContent = nm;
+tap(b, function(){
+var kids = actions.querySelectorAll("button");
+for(var k=0;k<kids.length;k++){
+kids[k].disabled = true;
+if(kids[k].textContent === p.name) kids[k].classList.add("is-right");
+}
+scoreFace(nm === p.name, actions);
+});
+actions.appendChild(b);
+});
+}
+function scoreFace(ok, actions){
+var p = facesPerson;
+var fb = $("faces-feedback");
+actions.innerHTML = "";
+if(ok === "tot"){
+p.misses = 0;
+fb.className = "feedback good";
+fb.textContent = "זה קורה. הזיכרון היה שם.";
+if(p.stage >= 5){
+p.due = Date.now() + INTERVALS[Math.max(0, Math.min(p.reps, INTERVALS.length - 1) - 1)] * 86400000;
+}
+save();
+facesDone(actions);
+return;
+}
+if(ok){
+p.misses = 0;
+fb.className = "feedback good";
+if(p.stage >= 5){
+p.reps++;
+var days = INTERVALS[Math.min(p.reps, INTERVALS.length - 1)];
+p.due = Date.now() + days * 86400000;
+fb.textContent = "נחזור אליו בעוד " + days + (days === 1 ? " יום." : " ימים.");
+} else {
+p.stage++;
+if(p.stage === 5){
+p.reps = 0;
+p.due = Date.now() + INTERVALS[0] * 86400000;
+fb.textContent = "זהו, " + p.name + " נכנס. נחזור אליו מחר.";
+} else {
+fb.textContent = "יפה.";
+}
+}
+} else {
+p.misses++;
+fb.className = "feedback gentle";
+fb.textContent = "זה " + p.name + ". נחזור אליו עוד מעט.";
+if(p.stage >= 5){
+p.reps = Math.max(0, p.reps - 2);
+p.due = Date.now() + 86400000;
+} else {
+p.stage = Math.max(p.stage - 1, 2);
+}
+}
+save();
+facesDone(actions);
+}
+var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0;
+function renderQuestion(){
+var q = currentQuestion();
+$("q-feedback").textContent = "";
+$("q-play").classList.add("hidden");
+$("q-send").classList.add("hidden");
+$("q-after").innerHTML = "";
+$("rec-label").textContent = "ספר לי";
+$("rec-time").textContent = "";
+$("rec-btn").classList.remove("recording");
+if(!q){
+$("q-from").textContent = "אין שאלה חדשה";
+$("q-text").textContent = "כשמישהו מהמשפחה ישאל אותך משהו, זה יופיע כאן.";
+$("rec-btn").classList.add("hidden");
+return;
+}
+$("rec-btn").classList.remove("hidden");
+$("q-from").textContent = "מ" + q.from;
+$("q-text").textContent = q.text;
+}
+function fmtTime(ms){
+var s = Math.floor(ms/1000);
+return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2);
+}
+function stopRec(){
+if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
