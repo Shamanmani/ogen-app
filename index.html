@@ -1109,3 +1109,215 @@ save();
 $("puzzle-next").classList.remove("hidden");
 }
 function renderPuzzle(){
+
+var items = PUZZLES[S.puzzleIndex % PUZZLES.length].slice();
+puzzleChosen = [];
+$("puzzle-kind").textContent = "סדר";
+$("puzzle-prompt").textContent = "סדר לפי הזמן — מהמוקדם למאוחר.";
+$("mode-word").classList.add("hidden");
+$("mode-seq").classList.remove("hidden");
+var box = $("puzzle-choices");
+box.innerHTML = "";
+$("puzzle-seq").innerHTML = "";
+$("puzzle-feedback").textContent = "";
+$("puzzle-next").classList.add("hidden");
+$("puzzle-undo").classList.add("hidden");
+for(var i = items.length - 1; i > 0; i--){
+var j = Math.floor(Math.random() * (i + 1));
+var t = items[i]; items[i] = items[j]; items[j] = t;
+}
+items.forEach(function(ev){
+var b = document.createElement("button");
+b.className = "event";
+b.innerHTML = '<span class="event-title"></span>';
+b.querySelector(".event-title").textContent = ev.t;
+tap(b, function(){
+if(b.disabled) return;
+b.disabled = true;
+b.style.display = "none";
+puzzleChosen.push(ev);
+drawSeq();
+$("puzzle-undo").classList.remove("hidden");
+if(puzzleChosen.length === items.length) checkPuzzle(items);
+});
+box.appendChild(b);
+});
+}
+function drawSeq(marked){
+var ol = $("puzzle-seq");
+ol.innerHTML = "";
+puzzleChosen.forEach(function(ev, i){
+var li = document.createElement("li");
+var n = document.createElement("span");
+n.className = "n"; n.textContent = (i + 1) + ".";
+var t = document.createElement("span");
+t.textContent = ev.t;
+li.appendChild(n); li.appendChild(t);
+if(marked){
+var yr = document.createElement("span");
+yr.className = "yr"; yr.textContent = ev.y;
+li.appendChild(yr);
+li.className = marked[i] ? "ok" : "off";
+}
+ol.appendChild(li);
+});
+}
+function checkPuzzle(items){
+var correct = items.slice().sort(function(a,b){ return a.y - b.y; });
+var marked = puzzleChosen.map(function(ev,i){ return ev.y === correct[i].y; });
+var allRight = marked.every(Boolean);
+drawSeq(marked);
+$("puzzle-undo").classList.add("hidden");
+var fb = $("puzzle-feedback");
+if(allRight){
+fb.className = "feedback good";
+fb.textContent = "הכל במקום.";
+} else {
+fb.className = "feedback gentle";
+fb.textContent = "הסדר הנכון: " + correct.map(function(e){ return e.t; }).join(" · ");
+}
+S.puzzleIndex++;
+S.done.puzzle = true;
+save();
+$("puzzle-next").classList.remove("hidden");
+}
+tap($("puzzle-undo"), function(){
+if(!puzzleChosen.length) return;
+var ev = puzzleChosen.pop();
+var kids = $("puzzle-choices").querySelectorAll("button");
+for(var i=0;i<kids.length;i++){
+if(kids[i].querySelector(".event-title").textContent === ev.t){
+kids[i].disabled = false;
+kids[i].style.display = "";
+}
+}
+drawSeq();
+if(!puzzleChosen.length) $("puzzle-undo").classList.add("hidden");
+});
+tap($("puzzle-next"), function(){ renderPuzzle(); });
+function shrinkImage(file, cb){
+var reader = new FileReader();
+reader.onload = function(e){
+var img = new Image();
+img.onload = function(){
+var size = 320;
+var c = document.createElement("canvas");
+c.width = size; c.height = size;
+var ctx = c.getContext("2d");
+var scale = Math.max(size/img.width, size/img.height);
+var w = img.width*scale, h = img.height*scale;
+ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+cb(c.toDataURL("image/jpeg", 0.78));
+};
+img.onerror = function(){ cb(null); };
+img.src = e.target.result;
+};
+reader.onerror = function(){ cb(null); };
+reader.readAsDataURL(file);
+}
+function renderFamily(){
+var note = $("today-note");
+note.value = S.todayNote || "";
+note.onchange = function(){ S.todayNote = note.value.trim(); save(); renderHome(); };
+var box = $("people-rows");
+box.innerHTML = "";
+S.people.forEach(function(p, idx){
+var row = document.createElement("div");
+row.className = "row";
+var thumb = document.createElement("div");
+thumb.className = "thumb";
+thumb.innerHTML = portraitFor(p);
+var nameIn = document.createElement("input");
+nameIn.type = "text"; nameIn.value = p.name; nameIn.setAttribute("aria-label","שם");
+nameIn.addEventListener("change", function(){ p.name = nameIn.value.trim() || p.name; save(); });
+var relIn = document.createElement("input");
+relIn.type = "text"; relIn.value = p.relation; relIn.setAttribute("aria-label","קרבה");
+relIn.addEventListener("change", function(){ p.relation = relIn.value.trim(); save(); });
+var stageTag = document.createElement("span");
+stageTag.className = "stage-tag";
+stageTag.textContent = p.stage >= 5 ? "יודע" : ("שלב " + p.stage + "/5");
+var pick = document.createElement("label");
+pick.className = "mini";
+pick.textContent = "תמונה";
+var file = document.createElement("input");
+file.type = "file"; file.accept = "image/*"; file.className = "hidden";
+file.addEventListener("change", function(){
+if(!file.files || !file.files[0]) return;
+shrinkImage(file.files[0], function(dataURL){
+if(!dataURL) return;
+p.photo = dataURL;
+try{ save(); }catch(e){}
+renderFamily();
+});
+});
+pick.appendChild(file);
+var del = document.createElement("button");
+del.className = "mini";
+del.textContent = "הסרה";
+tapFast(del, function(){
+if(S.people.length <= 2) return;
+S.people.splice(idx,1); save(); renderFamily();
+});
+row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
+row.appendChild(stageTag); row.appendChild(pick); row.appendChild(del);
+box.appendChild(row);
+});
+var qbox = $("q-rows");
+qbox.innerHTML = "";
+S.questions.forEach(function(q, idx){
+var row = document.createElement("div");
+row.className = "row";
+var fromIn = document.createElement("input");
+fromIn.type = "text"; fromIn.value = q.from; fromIn.style.maxWidth = "120px"; fromIn.setAttribute("aria-label","מי שואל");
+fromIn.addEventListener("change", function(){ q.from = fromIn.value.trim() || q.from; save(); });
+var txtIn = document.createElement("input");
+txtIn.type = "text"; txtIn.value = q.text; txtIn.setAttribute("aria-label","השאלה");
+txtIn.addEventListener("change", function(){ q.text = txtIn.value.trim() || q.text; save(); });
+var tag = document.createElement("span");
+tag.className = "stage-tag";
+tag.textContent = q.done ? "נענתה" : "ממתינה";
+var del = document.createElement("button");
+del.className = "mini"; del.textContent = "הסרה";
+tapFast(del, function(){ S.questions.splice(idx,1); save(); renderFamily(); });
+row.appendChild(fromIn); row.appendChild(txtIn); row.appendChild(tag); row.appendChild(del);
+qbox.appendChild(row);
+});
+}
+tapFast($("add-person"), function(){
+S.people.push({
+id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
+av:S.people.length % AVATARS.length, photo:null, stage:0, due:0, misses:0, reps:0
+});
+save(); renderFamily();
+});
+tapFast($("add-question"), function(){
+S.questions.push({id:"q" + Date.now(), from:"דנה", text:"שאלה חדשה", done:false});
+save(); renderFamily();
+});
+tapFast($("cal-up"), function(){
+S.zoom = Math.min(2, Math.round((S.zoom + 0.05) * 100) / 100);
+save(); applyZoom();
+});
+tapFast($("cal-down"), function(){
+S.zoom = Math.max(0.7, Math.round((S.zoom - 0.05) * 100) / 100);
+save(); applyZoom();
+});
+tapFast($("reset-all"), function(){
+var keepZoom = S.zoom;          /* calibration is about the device, not the progress */
+S = defaults();
+S.zoom = keepZoom;
+S.day = todayKey;
+save(); applyZoom(); renderFamily(); renderHome();
+});
+tap($("open-family"), function(){ renderFamily(); show("s-family"); });
+tap($("card-faces"),    function(){ renderFaces();    show("s-faces");    });
+tap($("card-question"), function(){ renderQuestion(); show("s-question"); });
+tap($("card-puzzle"),   function(){ renderPuzzle();   show("s-puzzle");   });
+applyZoom();
+renderHome();
+})();
+if("serviceWorker" in navigator){
+navigator.serviceWorker.register("sw.js").catch(function(){});
+}</script>
+</body>
+</html>
