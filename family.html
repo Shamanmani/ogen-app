@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>עוגן — שאלות למשפחה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Assistant:wght@400;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --paper:#E9EAE1;
+  --raised:#F4F5ED;
+  --ink:#1B1E16;
+  --ink-soft:#5C6153;
+  --rule:#CDD0C2;
+  --pom:#96271F;
+  --pom-ink:#FBF3F1;
+  --pom-wash:#F0DCD7;
+  --moss:#45592F;
+  --moss-wash:#DDE4CE;
+  --shadow:rgba(27,30,22,.13);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  direction:rtl;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Assistant","Segoe UI",system-ui,sans-serif;
+  font-size:18px;
+  line-height:1.55;
+}
+.wrap{max-width:560px;margin:0 auto;padding:28px 20px 60px}
+h1{
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:30px;
+  font-weight:700;
+  margin:0 0 6px;
+}
+.sub{color:var(--ink-soft);margin:0 0 28px;font-size:16px}
+
+.card{
+  background:var(--raised);
+  border:2px solid var(--rule);
+  border-radius:8px;
+  padding:20px;
+  margin-bottom:22px;
+  box-shadow:0 2px 0 var(--shadow);
+}
+.card h2{
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:21px;
+  font-weight:700;
+  margin:0 0 14px;
+}
+
+label{display:block;font-size:14px;font-weight:600;color:var(--ink-soft);margin:0 0 6px}
+input[type=text], textarea{
+  width:100%;
+  font-family:inherit;
+  font-size:17px;
+  padding:12px 14px;
+  border:2px solid var(--rule);
+  border-radius:6px;
+  background:#fff;
+  color:var(--ink);
+  margin-bottom:16px;
+  resize:vertical;
+}
+textarea{min-height:80px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.chip{
+  font-size:14px;
+  padding:8px 14px;
+  border-radius:20px;
+  border:2px solid var(--rule);
+  background:#fff;
+  color:var(--ink-soft);
+  cursor:pointer;
+}
+.chip:active{background:var(--pom-wash);border-color:var(--pom);color:var(--pom)}
+
+button.primary{
+  width:100%;
+  font-family:inherit;
+  font-size:18px;
+  font-weight:700;
+  padding:14px;
+  border:0;
+  border-radius:6px;
+  background:var(--pom);
+  color:var(--pom-ink);
+  cursor:pointer;
+}
+button.primary:disabled{opacity:.5;cursor:default}
+button.primary:active{transform:translateY(1px)}
+
+.msg{font-size:15px;margin-top:12px;text-align:center}
+.msg.err{color:var(--pom)}
+.msg.ok{color:var(--moss)}
+.msg:empty{display:none}
+
+.qlist{display:flex;flex-direction:column;gap:12px}
+.q{
+  border:2px solid var(--rule);
+  border-radius:8px;
+  padding:14px 16px;
+  background:var(--raised);
+}
+.q.answered{border-color:var(--moss);background:var(--moss-wash)}
+.q-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.q-name{font-weight:700}
+.q-tag{font-size:13px;color:var(--ink-soft)}
+.q.answered .q-tag{color:var(--moss)}
+.q-text{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:19px;margin:0 0 8px}
+audio{width:100%;margin-top:6px}
+.empty-note{color:var(--ink-soft);text-align:center;padding:20px 0}
+.refresh{
+  display:block;
+  margin:0 auto 20px;
+  background:none;
+  border:2px solid var(--rule);
+  border-radius:6px;
+  padding:8px 16px;
+  font-size:14px;
+  color:var(--ink-soft);
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>עוגן</h1>
+  <p class="sub">שולחים שאלה לאבא, ורואים כאן כשהוא עונה.</p>
+
+  <div class="card">
+    <h2>שאלה חדשה</h2>
+    <label for="f-name">השם שלך</label>
+    <input type="text" id="f-name" placeholder="למשל: דנה" autocomplete="name">
+
+    <label>רעיונות לשאלה (אפשר גם לכתוב שאלה משלכם)</label>
+    <div class="chips" id="chips"></div>
+
+    <label for="f-text">השאלה</label>
+    <textarea id="f-text" placeholder="איך הכרת את אמא?"></textarea>
+
+    <button class="primary" id="send-btn">לשלוח לאבא</button>
+    <p class="msg" id="send-msg"></p>
+  </div>
+
+  <button class="refresh" id="refresh-btn">↻ לרענן</button>
+
+  <div class="card">
+    <h2>השאלות</h2>
+    <div class="qlist" id="qlist"></div>
+    <p class="empty-note" id="empty-note" hidden>אין עדיין שאלות. תהיו הראשונים לשלוח אחת למעלה.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var SUPABASE_URL = "https://evhtfbzmgacvviinxojb.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2aHRmYnptZ2FjdnZpaW54b2piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDIyMDIsImV4cCI6MjEwMzUxODIwMn0.MsevkrWFZXXu-SwqDmb6VgNMhQsiTILw8o0EwXveTEg";
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+var SUGGESTED = [
+  "איפה למדת לרכוב על אופניים?",
+  "איך הכרת את אמא?",
+  "מה הדבר הראשון שקנית מכסף שהרווחת?",
+  "איזה משחק שיחקת כשהיית ילד?",
+  "מה היה הכי כיף בילדות שלך?",
+  "מה רצית להיות כשתגדל?",
+  "איך היה יום חתונה שלכם?",
+  "מה היית עושה בקיץ כשלמדת בבית ספר?"
+];
+
+function $(id){ return document.getElementById(id); }
+
+/* השם נשמר בדפדפן של השולח, כדי שלא יצטרך להקליד אותו כל פעם. */
+try{
+  var savedName = localStorage.getItem("ogen.family.name");
+  if(savedName) $("f-name").value = savedName;
+}catch(e){}
+
+var chipsBox = $("chips");
+SUGGESTED.forEach(function(text){
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "chip";
+  b.textContent = text;
+  b.addEventListener("click", function(){ $("f-text").value = text; });
+  chipsBox.appendChild(b);
+});
+
+function setMsg(text, kind){
+  var el = $("send-msg");
+  el.textContent = text || "";
+  el.className = "msg" + (kind ? " " + kind : "");
+}
+
+function fmtDate(iso){
+  try{
+    var d = new Date(iso);
+    return d.toLocaleDateString("he-IL", {day:"numeric", month:"numeric"});
+  }catch(e){ return ""; }
+}
+
+function renderList(rows){
+  var box = $("qlist");
+  box.innerHTML = "";
+  $("empty-note").hidden = !!(rows && rows.length);
+
+  (rows || []).forEach(function(q){
+    var div = document.createElement("div");
+    div.className = "q" + (q.status === "answered" ? " answered" : "");
+
+    var head = document.createElement("div");
+    head.className = "q-head";
+    var name = document.createElement("span");
+    name.className = "q-name";
+    name.textContent = q.from_name;
+    var tag = document.createElement("span");
+    tag.className = "q-tag";
+    tag.textContent = (q.status === "answered" ? "נענתה" : "ממתינה") + " · " + fmtDate(q.created_at);
+    head.appendChild(name); head.appendChild(tag);
+
+    var text = document.createElement("p");
+    text.className = "q-text";
+    text.textContent = q.question;
+
+    div.appendChild(head);
+    div.appendChild(text);
+
+    if(q.status === "answered" && q.answer_audio_url){
+      var audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = q.answer_audio_url;
+      div.appendChild(audio);
+    }
+
+    box.appendChild(div);
+  });
+}
+
+function loadQuestions(){
+  return sb.from("questions")
+    .select("*")
+    .order("created_at", {ascending:false})
+    .then(function(res){
+      if(res.error){
+        $("qlist").innerHTML = "";
+        $("empty-note").hidden = false;
+        $("empty-note").textContent = "לא הצלחנו לטעון את השאלות כרגע. נסו לרענן עוד רגע.";
+        return;
+      }
+      renderList(res.data);
+    });
+}
+
+tap($("refresh-btn"), loadQuestions);
+
+/* טאץ' פשוט, בלי דיבאונס כבד — זה דף למבוגרים צעירים יותר על הטלפון שלהם. */
+function tap(el, fn){
+  if(!el) return;
+  el.addEventListener("click", function(ev){ fn(ev); });
+}
+
+tap($("send-btn"), function(){
+  var name = $("f-name").value.trim();
+  var text = $("f-text").value.trim();
+
+  if(!name){ setMsg("צריך לכתוב שם.", "err"); return; }
+  if(!text){ setMsg("צריך לכתוב שאלה.", "err"); return; }
+
+  $("send-btn").disabled = true;
+  setMsg("שולח…");
+
+  /* שאלה פתוחה אחת לאדם, כדי שהתור לא יתמלא באותו שולח */
+  sb.from("questions")
+    .select("id")
+    .eq("status", "waiting")
+    .ilike("from_name", name)
+    .then(function(res){
+      if(res.error) throw res.error;
+      if(res.data && res.data.length){
+        setMsg("כבר יש לך שאלה שממתינה לתשובה של אבא. אפשר לשלוח שאלה נוספת אחרי שהוא יענה.", "err");
+        $("send-btn").disabled = false;
+        return null;
+      }
+      try{ localStorage.setItem("ogen.family.name", name); }catch(e){}
+      return sb.from("questions").insert({from_name:name, question:text});
+    })
+    .then(function(res){
+      if(!res) return;
+      if(res.error) throw res.error;
+      setMsg("נשלח! אבא יראה אותה בטאבלט שלו.", "ok");
+      $("f-text").value = "";
+      $("send-btn").disabled = false;
+      loadQuestions();
+    })
+    .catch(function(err){
+      setMsg("משהו השתבש. אפשר לנסות שוב.", "err");
+      $("send-btn").disabled = false;
+    });
+});
+
+loadQuestions();
+})();
+</script>
+
+</body>
+</html>
