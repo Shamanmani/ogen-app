@@ -14,423 +14,518 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Assistant:wght@400;600;700&display=swap">
-<style>:root{
---paper:#E9EAE1;
---raised:#F4F5ED;
---ink:#1B1E16;
---ink-soft:#5C6153;
---rule:#CDD0C2;
---pom:#96271F;
---pom-ink:#FBF3F1;
---pom-wash:#F0DCD7;
---moss:#45592F;
---moss-wash:#DDE4CE;
---shadow:rgba(27,30,22,.13);
---tap:104px;
---tap-gap:40px;
---zoom:1;
+
+<style>
+/*
+  Deliberately single-theme (light). This is an appliance UI for a 90-year-old:
+  dark mode causes halation/glare with an aged or cataractous lens, and the
+  palette avoids blue as a functional colour because blue discrimination is the
+  first to go with lens yellowing. Every colour is painted explicitly so the page
+  holds on any host ground.
+*/
+:root{
+  --paper:#E9EAE1;
+  --raised:#F4F5ED;
+  --ink:#1B1E16;
+  --ink-soft:#5C6153;
+  --rule:#CDD0C2;
+  --pom:#96271F;
+  --pom-ink:#FBF3F1;
+  --pom-wash:#F0DCD7;
+  --moss:#45592F;
+  --moss-wash:#DDE4CE;
+  --shadow:rgba(27,30,22,.13);
+
+  /*
+    Sized against the CSS spec's 96px/inch. Real tablets run 110-135 CSS px per
+    inch, so these render ~20% small until the family panel's ruler calibration
+    sets --zoom. Do not "fix" this by inflating the numbers — measure instead.
+  */
+  --tap:104px;          /* 25mm at 96dpi — sized for a resting tremor */
+  --tap-gap:calc(40px * var(--dg));   /* 10mm of dead space between targets */
+  --zoom:1;
+
+  /*
+    Nothing below the fold. An option he has to scroll to reach is, for him, not
+    there at all. --d shrinks only spacing and the decorative parts (portrait,
+    paddings, margins). --dg shrinks the gap between touch targets and never
+    goes under 0.8, because that dead space is what protects a tremor-y finger.
+    Target size (--tap) and every font size stay put. fit() picks the largest
+    value that still fits the screen.
+  */
+  --d:1;
+  --dg:1;
 }
+
 *{box-sizing:border-box}
+
+/*
+  Without a real app shell (kiosk PWA, still pending on the roadmap), this runs
+  in an ordinary mobile browser tab. That means the browser's own gestures —
+  pinch-zoom, double-tap-zoom, pull-to-refresh, edge-swipe-back — are still live
+  underneath the app and can fire on a tremor-y or off-target touch, which reads
+  to him as the app throwing him out. These rules turn all of that off so every
+  touch on the page is interpreted as an app tap, never a browser gesture.
+*/
 html{overscroll-behavior:none}
+
 body{
-margin:0;
-direction:rtl;
-background:var(--paper);
-color:var(--ink);
-font-family:"Assistant","Segoe UI",system-ui,sans-serif;
-font-size:22px;
-line-height:1.55;
--webkit-text-size-adjust:100%;
--webkit-tap-highlight-color:transparent;
-touch-action:manipulation;
-overscroll-behavior:none;
--webkit-user-select:none;
-user-select:none;
--webkit-touch-callout:none;
+  margin:0;
+  direction:rtl;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Assistant","Segoe UI",system-ui,sans-serif;
+  font-size:22px;
+  line-height:1.55;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  overscroll-behavior:none;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
 }
+
 button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+
 :focus-visible{outline:4px solid var(--pom);outline-offset:4px}
+
 @media (prefers-reduced-motion:reduce){
-*,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
 }
+
+/* ---------- shell ---------- */
 .wrap{
-zoom:var(--zoom);
-max-width:760px;
-margin:0 auto;
-padding:32px 24px 64px;
-min-height:100vh;
-display:flex;
-flex-direction:column;
+  zoom:var(--zoom);
+  max-width:760px;
+  margin:0 auto;
+  padding:calc(32px * var(--d)) 24px calc(28px * var(--d));
+  /* zoom multiplies every length inside, viewport units included — so a plain
+     100vh here renders 20-35% taller than the screen and guarantees a scrollbar */
+  min-height:calc(100dvh / var(--zoom));
+  display:flex;
+  flex-direction:column;
 }
+
 .screen{display:none;flex:1;flex-direction:column}
 .screen.active{display:flex}
+
 .masthead{
-display:flex;
-align-items:baseline;
-justify-content:space-between;
-gap:16px;
-padding-bottom:18px;
-border-bottom:2px solid var(--rule);
-margin-bottom:40px;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:18px;
+  border-bottom:2px solid var(--rule);
+  margin-bottom:calc(40px * var(--d));
 }
 .wordmark{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:34px;
-font-weight:700;
-letter-spacing:.02em;
-margin:0;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:34px;
+  font-weight:700;
+  letter-spacing:.02em;
+  margin:0;
 }
 .today{
-font-size:19px;
-color:var(--ink-soft);
-font-variant-numeric:tabular-nums;
+  font-size:19px;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
 }
+
+/* ---------- home ---------- */
 .greeting{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:clamp(32px,6vw,44px);
-font-weight:500;
-line-height:1.25;
-text-wrap:balance;
-margin:0 0 8px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:clamp(32px,6vw,44px);
+  font-weight:500;
+  line-height:1.25;
+  text-wrap:balance;
+  margin:0 0 8px;
 }
 .greeting-sub{
-font-size:21px;
-color:var(--ink-soft);
-margin:0 0 40px;
+  font-size:21px;
+  color:var(--ink-soft);
+  margin:0 0 calc(40px * var(--d));
 }
+
 .cards{display:flex;flex-direction:column;gap:var(--tap-gap)}
+
 .card{
-display:flex;
-align-items:center;
-gap:24px;
-width:100%;
-min-height:var(--tap);
-padding:26px 28px;
-text-align:right;
-background:var(--raised);
-border:2px solid var(--rule);
-border-radius:4px;
-box-shadow:0 2px 0 var(--shadow);
-transition:transform .12s ease,border-color .12s ease;
+  display:flex;
+  align-items:center;
+  gap:24px;
+  width:100%;
+  min-height:var(--tap);
+  padding:calc(26px * var(--d)) 28px;
+  text-align:right;
+  background:var(--raised);
+  border:2px solid var(--rule);
+  border-radius:4px;
+  box-shadow:0 2px 0 var(--shadow);
+  transition:transform .12s ease,border-color .12s ease;
 }
 .card:active{transform:translateY(2px);box-shadow:none}
 .card.done{border-color:var(--moss);background:var(--moss-wash)}
+
 .card-num{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:40px;
-font-weight:700;
-color:var(--pom);
-min-width:44px;
-text-align:center;
-font-variant-numeric:tabular-nums;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:40px;
+  font-weight:700;
+  color:var(--pom);
+  min-width:44px;
+  text-align:center;
+  font-variant-numeric:tabular-nums;
 }
 .card.done .card-num{color:var(--moss)}
 .card-body{flex:1}
 .card-title{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:32px;
-font-weight:700;
-line-height:1.2;
-display:block;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:32px;
+  font-weight:700;
+  line-height:1.2;
+  display:block;
 }
 .card-note{font-size:19px;color:var(--ink-soft);display:block;margin-top:4px}
 .card-mark{font-size:32px;color:var(--moss);font-weight:700}
+
+/* ---------- generic screen furniture ---------- */
 .back{
-display:inline-flex;
-align-items:center;
-gap:10px;
-min-height:64px;
-padding:0 20px 0 24px;
-margin-bottom:28px;
-align-self:flex-start;
-font-size:21px;
-font-weight:600;
-color:var(--ink-soft);
-border:2px solid var(--rule);
-border-radius:4px;
-background:var(--raised);
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-height:64px;
+  padding:0 20px 0 24px;
+  margin-bottom:calc(28px * var(--d));
+  align-self:flex-start;
+  font-size:21px;
+  font-weight:600;
+  color:var(--ink-soft);
+  border:2px solid var(--rule);
+  border-radius:4px;
+  background:var(--raised);
 }
+
 .stage-line{
-font-size:18px;
-letter-spacing:.09em;
-text-transform:uppercase;
-color:var(--ink-soft);
-margin:0 0 20px;
-font-weight:600;
+  font-size:18px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin:0 0 calc(20px * var(--d));
+  font-weight:600;
 }
+
 .prompt{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:clamp(30px,5.4vw,40px);
-font-weight:500;
-line-height:1.3;
-text-wrap:balance;
-margin:0 0 32px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:clamp(30px,5.4vw,40px);
+  font-weight:500;
+  line-height:1.3;
+  text-wrap:balance;
+  margin:0 0 calc(32px * var(--d));
 }
+
 .btn{
-display:flex;
-align-items:center;
-justify-content:center;
-gap:14px;
-width:100%;
-min-height:var(--tap);
-padding:20px 28px;
-font-size:29px;
-font-weight:600;
-border-radius:4px;
-border:2px solid transparent;
-transition:transform .12s ease;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  width:100%;
+  min-height:var(--tap);
+  padding:20px 28px;
+  font-size:29px;
+  font-weight:600;
+  border-radius:4px;
+  border:2px solid transparent;
+  transition:transform .12s ease;
 }
 .btn:active{transform:translateY(2px)}
 .btn-primary{background:var(--pom);color:var(--pom-ink);box-shadow:0 3px 0 #6D1C16}
 .btn-primary:active{box-shadow:0 1px 0 #6D1C16}
 .btn-quiet{background:var(--raised);border-color:var(--rule);color:var(--ink)}
+
 .stack{display:flex;flex-direction:column;gap:var(--tap-gap);margin-top:8px}
+
+/* ---------- faces ---------- */
 .portrait-frame{
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:20px;
-margin-bottom:32px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:calc(20px * var(--d));
+  margin-bottom:calc(32px * var(--d));
 }
 .portrait{
-width:min(300px,62vw);
-aspect-ratio:1;
-border-radius:4px;
-border:3px solid var(--rule);
-background:var(--raised);
-overflow:hidden;
-box-shadow:0 3px 0 var(--shadow);
+  width:clamp(96px, calc(300px * var(--d)), min(300px,62vw));
+  aspect-ratio:1;
+  border-radius:4px;
+  border:3px solid var(--rule);
+  background:var(--raised);
+  overflow:hidden;
+  box-shadow:0 3px 0 var(--shadow);
 }
 .portrait svg,.portrait img{width:100%;height:100%;display:block;object-fit:cover}
+
 .person-name{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:clamp(38px,7vw,52px);
-font-weight:700;
-line-height:1.1;
-margin:0;
-text-align:center;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:clamp(38px,7vw,52px);
+  font-weight:700;
+  line-height:1.1;
+  margin:0;
+  text-align:center;
 }
 .person-rel{font-size:23px;color:var(--ink-soft);text-align:center;margin:0}
 .person-fact{
-font-size:23px;
-text-align:center;
-margin:0;
-max-width:34ch;
-color:var(--ink);
+  font-size:23px;
+  text-align:center;
+  margin:0;
+  max-width:34ch;
+  color:var(--ink);
 }
+
 .feedback{
-min-height:80px;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:14px;
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:30px;
-font-weight:500;
-text-align:center;
-margin-bottom:8px;
-padding:0 12px;
+  min-height:calc(80px * var(--d));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:30px;
+  font-weight:500;
+  text-align:center;
+  margin-bottom:8px;
+  padding:0 12px;
 }
 .feedback.good{color:var(--moss)}
 .feedback.gentle{color:var(--ink-soft)}
+.feedback:empty{min-height:0;margin:0;padding:0}   /* an empty line still ate 80px of screen */
+
+/*
+  Tightest steps only. When space runs out, drop what is duplicated elsewhere on
+  the screen before touching anything he actually has to read — the date in the
+  header also sits, larger, inside the orientation box right below it.
+*/
+body.dense .today{display:none}
+body.dense .wordmark{font-size:28px}
+body.dense .orient-day{font-size:30px}
+body.dense .masthead{padding-bottom:6px}
+body.dense .greeting{font-size:30px;margin-bottom:4px}
+body.dense .family-link{padding-top:calc(14px * var(--d))}
+
 .choice{
-display:flex;
-align-items:center;
-justify-content:center;
-width:100%;
-min-height:var(--tap);
-padding:18px 28px;
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:34px;
-font-weight:500;
-background:var(--raised);
-border:2px solid var(--rule);
-border-radius:4px;
-box-shadow:0 2px 0 var(--shadow);
-transition:transform .12s ease;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:var(--tap);
+  padding:18px 28px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:34px;
+  font-weight:500;
+  background:var(--raised);
+  border:2px solid var(--rule);
+  border-radius:4px;
+  box-shadow:0 2px 0 var(--shadow);
+  transition:transform .12s ease;
 }
 .choice:active{transform:translateY(2px);box-shadow:none}
 .choice.is-right{background:var(--moss-wash);border-color:var(--moss)}
 .choice.is-shown{background:var(--pom-wash);border-color:var(--pom)}
 .choice[disabled]{opacity:.5}
+
 .hint-name{
-display:block;
-text-align:center;
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:30px;
-color:var(--pom);
-background:var(--pom-wash);
-border-radius:4px;
-padding:12px 20px;
-margin:0 auto 28px;
-max-width:fit-content;
+  display:block;
+  text-align:center;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:30px;
+  color:var(--pom);
+  background:var(--pom-wash);
+  border-radius:4px;
+  padding:12px 20px;
+  margin:0 auto 28px;
+  max-width:fit-content;
 }
+
+/* ---------- question / voice ---------- */
 .from-line{
-display:inline-block;
-font-size:19px;
-font-weight:600;
-letter-spacing:.06em;
-color:var(--pom);
-background:var(--pom-wash);
-padding:8px 18px;
-border-radius:3px;
-margin-bottom:22px;
+  display:inline-block;
+  font-size:19px;
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--pom);
+  background:var(--pom-wash);
+  padding:8px 18px;
+  border-radius:3px;
+  margin-bottom:22px;
 }
 .rec-btn{
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-gap:12px;
-width:100%;
-min-height:180px;
-border-radius:4px;
-background:var(--pom);
-color:var(--pom-ink);
-font-size:34px;
-font-weight:700;
-box-shadow:0 3px 0 #6D1C16;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  width:100%;
+  min-height:max(var(--tap), calc(180px * var(--d)));
+  border-radius:4px;
+  background:var(--pom);
+  color:var(--pom-ink);
+  font-size:34px;
+  font-weight:700;
+  box-shadow:0 3px 0 #6D1C16;
 }
 .rec-btn.recording{background:var(--moss);box-shadow:0 3px 0 #2E3D1F}
 .rec-dot{width:26px;height:26px;border-radius:50%;background:currentColor}
 .rec-btn.recording .rec-dot{animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .rec-time{font-size:22px;font-variant-numeric:tabular-nums;opacity:.9}
+
+/* ---------- puzzle ---------- */
 .event{
-display:flex;
-flex-direction:column;
-align-items:flex-start;
-gap:6px;
-width:100%;
-min-height:var(--tap);
-padding:24px 28px;
-text-align:right;
-background:var(--raised);
-border:2px solid var(--rule);
-border-radius:4px;
-box-shadow:0 2px 0 var(--shadow);
-transition:transform .12s ease;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+  width:100%;
+  min-height:var(--tap);
+  padding:calc(20px * var(--d)) 28px;
+  text-align:right;
+  background:var(--raised);
+  border:2px solid var(--rule);
+  border-radius:4px;
+  box-shadow:0 2px 0 var(--shadow);
+  transition:transform .12s ease;
 }
 .event:active{transform:translateY(2px);box-shadow:none}
 .event.is-right{background:var(--moss-wash);border-color:var(--moss)}
 .event-title{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:30px;font-weight:500;line-height:1.25}
 .event-year{font-size:20px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
+/* ---------- orientation ---------- */
 .orient{
-padding:24px 28px;
-margin:0 0 36px;
-background:var(--raised);
-border:2px solid var(--rule);
-border-inline-start:6px solid var(--moss);
-border-radius:4px;
+  padding:calc(22px * var(--d)) 28px;
+  margin:0 0 calc(36px * var(--d));
+  background:var(--raised);
+  border:2px solid var(--rule);
+  border-inline-start:6px solid var(--moss);
+  border-radius:4px;
 }
 .orient-day{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:clamp(34px,6vw,46px);
-font-weight:700;line-height:1.1;margin:0;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:clamp(34px,6vw,46px);
+  font-weight:700;line-height:1.1;margin:0;
 }
 .orient-date{font-size:23px;color:var(--ink-soft);margin:4px 0 0;font-variant-numeric:tabular-nums}
 .orient-note{font-size:24px;margin:14px 0 0;color:var(--ink)}
 .orient-note:empty{display:none}
+.orient-extra{font-size:22px;margin:10px 0 0;color:var(--ink-soft)}
+.orient-extra:empty{display:none}
+
+/* ---------- word retrieval ---------- */
 .cues{
-display:flex;flex-direction:column;gap:12px;
-margin:0 0 28px;padding:0;
-font-size:24px;color:var(--ink-soft);
+  display:flex;flex-direction:column;gap:12px;
+  margin:0 0 calc(28px * var(--d));padding:0;
+  font-size:24px;color:var(--ink-soft);
 }
 .cues:empty{display:none}
 .cues span{
-background:var(--pom-wash);color:var(--pom);
-padding:14px 22px;border-radius:4px;
-font-weight:600;
+  background:var(--pom-wash);color:var(--pom);
+  padding:14px 22px;border-radius:4px;
+  font-weight:600;
 }
 .answer{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:clamp(44px,9vw,64px);
-font-weight:700;text-align:center;line-height:1.1;
-margin:0 0 28px;padding:22px;
-background:var(--moss-wash);color:var(--moss);
-border-radius:4px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:clamp(44px,9vw,64px);
+  font-weight:700;text-align:center;line-height:1.1;
+  margin:0 0 calc(28px * var(--d));padding:calc(22px * var(--d));
+  background:var(--moss-wash);color:var(--moss);
+  border-radius:4px;
 }
-.seq{list-style:none;margin:0 0 28px;padding:0;display:flex;flex-direction:column;gap:10px}
+
+.seq{list-style:none;margin:0 0 calc(28px * var(--d));padding:0;display:flex;flex-direction:column;gap:10px}
 .seq:empty{display:none}
 .seq li{
-display:flex;align-items:center;gap:18px;
-padding:16px 22px;
-background:var(--pom-wash);
-border:2px solid var(--pom);
-border-radius:4px;
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:26px;
+  display:flex;align-items:center;gap:18px;
+  padding:16px 22px;
+  background:var(--pom-wash);
+  border:2px solid var(--pom);
+  border-radius:4px;
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:26px;
 }
 .seq li .n{
-font-weight:700;color:var(--pom);min-width:28px;
-font-variant-numeric:tabular-nums;
+  font-weight:700;color:var(--pom);min-width:28px;
+  font-variant-numeric:tabular-nums;
 }
 .seq li.ok{background:var(--moss-wash);border-color:var(--moss)}
 .seq li.ok .n{color:var(--moss)}
 .seq li.off{background:var(--raised);border-color:var(--rule)}
 .seq li.off .n{color:var(--ink-soft)}
 .seq li .yr{margin-inline-start:auto;font-family:"Assistant",sans-serif;font-size:19px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+
+/* ---------- family panel ---------- */
 .family-link{
-margin-top:auto;
-padding-top:48px;
-text-align:center;
-font-size:15px;
-color:var(--ink-soft);
-opacity:.65;
+  margin-top:auto;
+  padding-top:calc(48px * var(--d));
+  text-align:center;
+  font-size:15px;
+  color:var(--ink-soft);
+  opacity:.65;
 }
 .family-link button{font-size:15px;text-decoration:underline;padding:8px}
+
 .panel-h{
-font-family:"Frank Ruhl Libre",Georgia,serif;
-font-size:26px;
-font-weight:700;
-margin:36px 0 14px;
-padding-bottom:8px;
-border-bottom:2px solid var(--rule);
+  font-family:"Frank Ruhl Libre",Georgia,serif;
+  font-size:26px;
+  font-weight:700;
+  margin:36px 0 14px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--rule);
 }
 .panel-note{font-size:17px;color:var(--ink-soft);margin:0 0 18px;line-height:1.6}
+
 .row{
-display:flex;
-align-items:center;
-gap:16px;
-padding:14px 0;
-border-bottom:1px solid var(--rule);
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:14px 0;
+  border-bottom:1px solid var(--rule);
 }
 .row .thumb{width:62px;height:62px;border-radius:3px;overflow:hidden;border:1px solid var(--rule);flex:none;background:var(--raised)}
 .row .thumb svg,.row .thumb img{width:100%;height:100%;display:block;object-fit:cover}
 .row input[type=text]{
-flex:1;min-width:0;font-family:inherit;font-size:19px;padding:12px 14px;
-border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
+  flex:1;min-width:0;font-family:inherit;font-size:19px;padding:12px 14px;
+  border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
 }
 .row .stage-tag{font-size:15px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
 .mini{
-font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
-border:2px solid var(--rule);border-radius:3px;background:var(--raised);white-space:nowrap;
+  font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
+  border:2px solid var(--rule);border-radius:3px;background:var(--raised);white-space:nowrap;
 }
 .ruler{
-width:94.5px;height:94.5px;
-flex:none;
-border:2px solid var(--pom);
-background:var(--pom-wash);
-display:flex;align-items:center;justify-content:center;
-font-size:14px;color:var(--pom);text-align:center;line-height:1.3;
-border-radius:3px;
+  width:94.5px;height:94.5px;      /* 25mm at the CSS spec's 96px/inch */
+  flex:none;
+  border:2px solid var(--pom);
+  background:var(--pom-wash);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--pom);text-align:center;line-height:1.3;
+  border-radius:3px;
 }
 .cal{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
 .cal-ctl{display:flex;align-items:center;gap:14px}
 .cal-val{
-font-size:19px;font-weight:700;min-width:64px;text-align:center;
-font-variant-numeric:tabular-nums;
+  font-size:19px;font-weight:700;min-width:64px;text-align:center;
+  font-variant-numeric:tabular-nums;
 }
-.hidden{display:none !important}</style>
+.hidden{display:none !important}
+</style>
 </head>
 <body>
+
 <div class="wrap">
+
   <!-- ============ HOME ============ -->
   <section class="screen active" id="s-home">
     <header class="masthead">
       <h1 class="wordmark">עוגן</h1>
       <span class="today" id="today-date"></span>
     </header>
+
     <!--
       Orientation, never a quiz. Waking takes him a few minutes to place himself,
       so the first thing on screen answers the question instead of asking it.
@@ -439,9 +534,12 @@ font-variant-numeric:tabular-nums;
       <p class="orient-day" id="orient-day"></p>
       <p class="orient-date" id="orient-date"></p>
       <p class="orient-note" id="orient-note"></p>
+      <p class="orient-extra" id="orient-extra"></p>
     </div>
+
     <p class="greeting" id="greeting">בוקר טוב.</p>
     <p class="greeting-sub" id="greeting-sub">שלושה דברים מחכים לך היום. אפשר גם רק אחד.</p>
+
     <div class="cards">
       <button class="card" id="card-faces">
         <span class="card-num">א</span>
@@ -451,6 +549,7 @@ font-variant-numeric:tabular-nums;
         </span>
         <span class="card-mark hidden">✓</span>
       </button>
+
       <button class="card" id="card-question">
         <span class="card-num">ב</span>
         <span class="card-body">
@@ -459,6 +558,7 @@ font-variant-numeric:tabular-nums;
         </span>
         <span class="card-mark hidden">✓</span>
       </button>
+
       <button class="card" id="card-puzzle">
         <span class="card-num">ג</span>
         <span class="card-body">
@@ -468,29 +568,35 @@ font-variant-numeric:tabular-nums;
         <span class="card-mark hidden">✓</span>
       </button>
     </div>
+
     <p class="family-link">
       <button id="open-family">הגדרות משפחה</button>
     </p>
   </section>
+
   <!-- ============ FACES ============ -->
   <section class="screen" id="s-faces">
     <button class="back" data-go="s-home">→ חזרה</button>
     <p class="stage-line" id="faces-stage">להכיר</p>
+
     <div class="portrait-frame">
       <div class="portrait" id="faces-portrait"></div>
       <p class="person-name" id="faces-name">שירה</p>
       <p class="person-rel" id="faces-rel">הנינה שלך</p>
       <p class="person-fact" id="faces-fact"></p>
     </div>
+
     <p class="hint-name hidden" id="faces-hint"></p>
     <p class="feedback" id="faces-feedback" aria-live="polite"></p>
     <div class="stack" id="faces-actions"></div>
   </section>
+
   <!-- ============ QUESTION ============ -->
   <section class="screen" id="s-question">
     <button class="back" data-go="s-home">→ חזרה</button>
     <span class="from-line" id="q-from">מדנה</span>
     <p class="prompt" id="q-text"></p>
+
     <div class="stack">
       <button class="rec-btn" id="rec-btn">
         <span class="rec-dot"></span>
@@ -503,44 +609,57 @@ font-variant-numeric:tabular-nums;
       <div class="stack" id="q-after"></div>
     </div>
   </section>
+
   <!-- ============ PUZZLE ============ -->
   <section class="screen" id="s-puzzle">
     <button class="back" data-go="s-home">→ חזרה</button>
     <p class="stage-line" id="puzzle-kind">חידה</p>
     <p class="prompt" id="puzzle-prompt"></p>
+
     <!-- word retrieval -->
     <div id="mode-word" class="hidden">
       <p class="cues" id="word-cues"></p>
       <p class="answer hidden" id="word-answer"></p>
       <div class="stack" id="word-actions"></div>
     </div>
+
     <!-- sequencing -->
     <div id="mode-seq" class="hidden">
       <ol class="seq" id="puzzle-seq"></ol>
       <div class="stack" id="puzzle-choices"></div>
     </div>
+
     <p class="feedback" id="puzzle-feedback" aria-live="polite"></p>
     <div class="stack">
       <button class="btn btn-quiet hidden" id="puzzle-undo">לבטל אחרון</button>
       <button class="btn btn-primary hidden" id="puzzle-next">עוד אחת</button>
     </div>
   </section>
+
   <!-- ============ FAMILY PANEL ============ -->
   <section class="screen" id="s-family">
     <button class="back" data-go="s-home">→ חזרה</button>
     <h2 class="panel-h" style="margin-top:0">מה יש היום</h2>
-    <p class="panel-note">מופיע בראש המסך שלו, גדול. כשלוקח כמה דקות להתאפס אחרי שינה, זה מה שעונה לו במקום שהוא יצטרך לשאול. עדכנו כשיש משהו — ביקור, תור לרופא, טלפון שמצפים לו.</p>
+    <p class="panel-note">מופיע בראש המסך שלו, גדול. כשלוקח כמה דקות להתאפס אחרי שינה, זה מה שעונה לו במקום שהוא יצטרך לשאול. עדכנו כשיש משהו — ביקור, תור לרופא, טלפון שמצפים לו. מתנקה מעצמו בכל בוקר, כדי שלא יישאר תלוי שם משהו מאתמול. בימים שאין בהם כלום, מופיעה שם במקום זה שורה על מה שקרה בתאריך הזה בהיסטוריה.</p>
     <div class="row" style="border-bottom:0;padding-top:0">
       <input type="text" id="today-note" aria-label="מה יש היום" placeholder="למשל: ליאת מגיעה בעשר.">
     </div>
+
+    <h2 class="panel-h">תאריכים במשפחה</h2>
+    <p class="panel-note">ימי הולדת, ימי נישואין, יום השנה לסבתא. ביום שהתאריך מגיע, זה מה שיופיע לו למעלה — לפני כל דבר אחר. כותבים יום/חודש, למשל 28/08, וזה חוזר בכל שנה.</p>
+    <div id="occ-rows"></div>
+    <div class="stack" style="margin-top:20px"><button class="mini" id="add-occ">+ להוסיף תאריך</button></div>
+
     <h2 class="panel-h">האנשים</h2>
     <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה.</p>
     <div id="people-rows"></div>
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-person">+ להוסיף אדם</button></div>
+
     <h2 class="panel-h">השאלות</h2>
     <p class="panel-note">שאלה אחת ליום. הכי טובות הן כאלה שרק הוא יודע לענות עליהן.</p>
     <div id="q-rows"></div>
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-question">+ להוסיף שאלה</button></div>
+
     <h2 class="panel-h">כיול לפי סרגל</h2>
     <p class="panel-note">פעם אחת בלבד, ולפני הכל. הצמידו סרגל אמיתי למסך והתאימו את הריבוע עד שהוא מודד בדיוק 25 מ״מ בשני הכיוונים. כל הכפתורים באפליקציה נגזרים מהמדידה הזו — בלעדיה הם יוצאים כחמישית קטנים מדי על טאבלט 10 אינץ׳.</p>
     <div class="cal">
@@ -551,773 +670,1253 @@ font-variant-numeric:tabular-nums;
         <button class="mini" id="cal-up">+ גדול יותר</button>
       </div>
     </div>
+
     <h2 class="panel-h">איפוס</h2>
     <p class="panel-note">מוחק את כל ההתקדמות ומחזיר את התוכן לדוגמאות ההתחלתיות.</p>
     <div class="stack"><button class="mini" id="reset-all">לאפס הכל</button></div>
   </section>
+
 </div>
-<script>(function(){
+
+<script>
+(function(){
 "use strict";
+
+/* ---------------------------------------------------------------
+   State
+--------------------------------------------------------------- */
 var KEY = "ogen.v1";
+
 var AVATARS = [
-{bg:"#DCE0CE", skin:"#E8C9A8", hair:"#3A2E22", style:"long",  glasses:false, beard:false},
-{bg:"#E2D8CC", skin:"#D8B08A", hair:"#8C8378", style:"short", glasses:true,  beard:true },
-{bg:"#D6DCD2", skin:"#EFD6BC", hair:"#C4A05C", style:"long",  glasses:true,  beard:false},
-{bg:"#E4DAD4", skin:"#C99A72", hair:"#241D17", style:"short", glasses:false, beard:false},
-{bg:"#D9DDD4", skin:"#E8C9A8", hair:"#A8A29A", style:"bun",   glasses:true,  beard:false},
-{bg:"#DFD9C8", skin:"#D8B08A", hair:"#4A3B2A", style:"short", glasses:false, beard:true }
+  {bg:"#DCE0CE", skin:"#E8C9A8", hair:"#3A2E22", style:"long",  glasses:false, beard:false},
+  {bg:"#E2D8CC", skin:"#D8B08A", hair:"#8C8378", style:"short", glasses:true,  beard:true },
+  {bg:"#D6DCD2", skin:"#EFD6BC", hair:"#C4A05C", style:"long",  glasses:true,  beard:false},
+  {bg:"#E4DAD4", skin:"#C99A72", hair:"#241D17", style:"short", glasses:false, beard:false},
+  {bg:"#D9DDD4", skin:"#E8C9A8", hair:"#A8A29A", style:"bun",   glasses:true,  beard:false},
+  {bg:"#DFD9C8", skin:"#D8B08A", hair:"#4A3B2A", style:"short", glasses:false, beard:true }
 ];
+
 function defaults(){
-return {
-people:[
-{id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:0, due:0, misses:0, reps:0},
-{id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:0, due:0, misses:0, reps:0},
-{id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:0, due:0, misses:0, reps:0},
-{id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:0, due:0, misses:0, reps:0}
-],
-questions:[
-{id:"q1", from:"דנה", text:"איפה למדת לרכוב על אופניים?",           done:false},
-{id:"q2", from:"אורי", text:"מה הדבר הראשון שקנית מכסף שהרווחת?",   done:false},
-{id:"q3", from:"דנה", text:"איך הכרת את אמא?",                      done:false},
-{id:"q4", from:"שירה", text:"איזה משחק שיחקת כשהיית ילד?",           done:false}
-],
-qIndex:0,
-puzzleIndex:0,
-wordIndex:0,
-todayNote:"ליאת מגיעה בעשר. דנה מתקשרת בערב.",
-zoom:1,
-day:"",
-done:{faces:false, question:false, puzzle:false}
-};
+  return {
+    people:[
+      {id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:0, due:0, misses:0, reps:0},
+      {id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:0, due:0, misses:0, reps:0},
+      {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:0, due:0, misses:0, reps:0},
+      {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:0, due:0, misses:0, reps:0}
+    ],
+    questions:[
+      {id:"q1", from:"דנה", text:"איפה למדת לרכוב על אופניים?",           done:false},
+      {id:"q2", from:"אורי", text:"מה הדבר הראשון שקנית מכסף שהרווחת?",   done:false},
+      {id:"q3", from:"דנה", text:"איך הכרת את אמא?",                      done:false},
+      {id:"q4", from:"שירה", text:"איזה משחק שיחקת כשהיית ילד?",           done:false}
+    ],
+    qIndex:0,
+    puzzleIndex:0,
+    wordIndex:0,
+    wordLevel:1,
+    wordGood:0,
+    occasions:[],
+    todayNote:"ליאת מגיעה בעשר. דנה מתקשרת בערב.",
+    zoom:1,
+    day:"",
+    done:{faces:false, question:false, puzzle:false}
+  };
 }
+
 var S;
 try{
-S = JSON.parse(localStorage.getItem(KEY)) || defaults();
+  S = JSON.parse(localStorage.getItem(KEY)) || defaults();
 }catch(e){ S = defaults(); }
 if(!S || !S.people || !S.people.length) S = defaults();
+
+/* Carry state saved by an earlier build forward rather than wiping his progress. */
 S.people.forEach(function(p){
-if(typeof p.misses !== "number") p.misses = 0;
-if(typeof p.reps   !== "number") p.reps   = 0;
+  if(typeof p.misses !== "number") p.misses = 0;
+  if(typeof p.reps   !== "number") p.reps   = 0;
 });
 if(typeof S.zoom !== "number" || !(S.zoom > 0)) S.zoom = 1;
 if(typeof S.wordIndex !== "number") S.wordIndex = 0;
+if(typeof S.wordLevel !== "number") S.wordLevel = 1;
+if(typeof S.wordGood  !== "number") S.wordGood  = 0;
+if(!Array.isArray(S.occasions))     S.occasions = [];
 if(typeof S.todayNote !== "string") S.todayNote = "";
+
 function applyZoom(){
-document.documentElement.style.setProperty("--zoom", String(S.zoom));
-var v = document.getElementById("cal-val");
-if(v) v.textContent = Math.round(S.zoom * 100) + "%";
+  document.documentElement.style.setProperty("--zoom", String(S.zoom));
+  var v = document.getElementById("cal-val");
+  if(v) v.textContent = Math.round(S.zoom * 100) + "%";
 }
+
 function save(){
-try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){/* private mode, quota — the session still works */}
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){/* private mode, quota — the session still works */}
 }
+
 var todayKey = new Date().toISOString().slice(0,10);
 if(S.day !== todayKey){
-S.day = todayKey;
-S.done = {faces:false, question:false, puzzle:false};
-save();
+  S.day = todayKey;
+  S.done = {faces:false, question:false, puzzle:false};
+  S.todayNote = "";     /* "ליאת מגיעה בעשר" is true for one day only */
+  save();
 }
+
+/* ---------------------------------------------------------------
+   Tap plumbing — 500ms debounce swallows tremor double-fires
+--------------------------------------------------------------- */
+/*
+   Per-element, not global: a tremor double-fire lands on the SAME button, so
+   that is what gets swallowed. A global lockout would also block a deliberate
+   tap on a different button half a second later, which is normal use, not tremor.
+*/
 function tap(el, fn, ms){
-if(!el) return;
-var gap = (typeof ms === "number") ? ms : 500;
-el.addEventListener("click", function(ev){
-var now = Date.now();
-if(now - (el.__lastTap || 0) < gap) return;
-el.__lastTap = now;
-fn(ev);
-});
+  if(!el) return;
+  var gap = (typeof ms === "number") ? ms : 500;
+  el.addEventListener("click", function(ev){
+    var now = Date.now();
+    if(now - (el.__lastTap || 0) < gap) return;
+    el.__lastTap = now;
+    fn(ev);
+    fit();
+  });
 }
+/* The family panel is operated by someone without a tremor — the long guard
+   there just feels broken, especially on the calibration steppers. */
 function tapFast(el, fn){ tap(el, fn, 120); }
 function $(id){ return document.getElementById(id); }
-function show(id){ stopPlayback();
-var all = document.querySelectorAll(".screen");
-for(var i=0;i<all.length;i++) all[i].classList.remove("active");
-$(id).classList.add("active");
-window.scrollTo(0,0);
+
+function show(id){
+  stopPlayback();
+  var all = document.querySelectorAll(".screen");
+  for(var i=0;i<all.length;i++) all[i].classList.remove("active");
+  $(id).classList.add("active");
+  window.scrollTo(0,0);
+  fit();
 }
+
+/*
+  Everything on one screenful, no scrolling. He will not go looking below the
+  fold — a button he cannot see does not exist. So after every render the screen
+  is measured, and the spacing is tightened one step at a time until it fits.
+  Only spacing and the portrait give way; buttons keep their 25mm and text keeps
+  its size. If even the tightest step overflows (a very short screen), scrolling
+  comes back rather than cutting content off — losing a button is worse.
+*/
+var DENSITIES = [1, .85, .72, .6, .5, .42, .34, .27];
+function setDensity(d){
+  var r = document.documentElement.style;
+  r.setProperty("--d", String(d));
+  r.setProperty("--dg", String(Math.max(0.8, d)));
+}
+function fits(){
+  return document.documentElement.scrollHeight <= window.innerHeight + 1;
+}
+function fit(){
+  var active = document.querySelector(".screen.active");
+  if(active && active.id === "s-family"){   /* long by design, and whoever opens it can scroll */
+    setDensity(1);
+    document.body.style.overflowY = "auto";
+    return;
+  }
+  document.body.style.overflowY = "hidden";
+  for(var i = 0; i < DENSITIES.length; i++){
+    setDensity(DENSITIES[i]);
+    document.body.classList.toggle("dense", DENSITIES[i] <= .6);
+    if(fits()) return;
+  }
+  document.body.style.overflowY = "auto";
+}
+window.addEventListener("resize", fit);
+window.addEventListener("orientationchange", function(){ setTimeout(fit, 300); });
+
 document.querySelectorAll("[data-go]").forEach(function(b){
-tap(b, function(){
-var dest = b.getAttribute("data-go");
-if(dest === "s-home") renderHome();
-show(dest);
+  tap(b, function(){
+    var dest = b.getAttribute("data-go");
+    if(dest === "s-home") renderHome();
+    show(dest);
+  });
 });
-});
+
+/* ---------------------------------------------------------------
+   Portraits
+--------------------------------------------------------------- */
 function avatarSVG(cfg){
-var hair = "";
-if(cfg.style === "long"){
-hair = '<path d="M28 46c0-16 10-26 22-26s22 10 22 26v26c0 4-3 6-6 6V50c0-9-7-14-16-14s-16 5-16 14v28c-3 0-6-2-6-6z" fill="'+cfg.hair+'"/>';
-} else if(cfg.style === "bun"){
-hair = '<circle cx="50" cy="16" r="8" fill="'+cfg.hair+'"/><path d="M30 46c0-13 9-22 20-22s20 9 20 22v3c-4-9-11-13-20-13s-16 4-20 13z" fill="'+cfg.hair+'"/>';
-} else {
-hair = '<path d="M30 46c0-13 9-22 20-22s20 9 20 22v2c-5-8-11-12-20-12s-15 4-20 12z" fill="'+cfg.hair+'"/>';
+  var hair = "";
+  if(cfg.style === "long"){
+    hair = '<path d="M28 46c0-16 10-26 22-26s22 10 22 26v26c0 4-3 6-6 6V50c0-9-7-14-16-14s-16 5-16 14v28c-3 0-6-2-6-6z" fill="'+cfg.hair+'"/>';
+  } else if(cfg.style === "bun"){
+    hair = '<circle cx="50" cy="16" r="8" fill="'+cfg.hair+'"/><path d="M30 46c0-13 9-22 20-22s20 9 20 22v3c-4-9-11-13-20-13s-16 4-20 13z" fill="'+cfg.hair+'"/>';
+  } else {
+    hair = '<path d="M30 46c0-13 9-22 20-22s20 9 20 22v2c-5-8-11-12-20-12s-15 4-20 12z" fill="'+cfg.hair+'"/>';
+  }
+  var glasses = cfg.glasses
+    ? '<g fill="none" stroke="#3A3A32" stroke-width="2.4"><circle cx="40" cy="52" r="9"/><circle cx="60" cy="52" r="9"/><path d="M49 52h2"/><path d="M31 51l-5 1"/><path d="M69 51l5 1"/></g>'
+    : "";
+  var beard = cfg.beard
+    ? '<path d="M33 60c0 12 8 20 17 20s17-8 17-20c0 8-8 11-17 11s-17-3-17-11z" fill="'+cfg.hair+'" opacity=".85"/>'
+    : "";
+  return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="דיוקן">'
+    + '<rect width="100" height="100" fill="'+cfg.bg+'"/>'
+    + '<path d="M18 100c0-17 14-26 32-26s32 9 32 26z" fill="#8C8C7E"/>'
+    + '<ellipse cx="50" cy="52" rx="20" ry="24" fill="'+cfg.skin+'"/>'
+    + beard + hair + glasses
+    + '<circle cx="42" cy="52" r="2.2" fill="#2B2B24"/><circle cx="58" cy="52" r="2.2" fill="#2B2B24"/>'
+    + '<path d="M44 64c3 2.5 9 2.5 12 0" stroke="#2B2B24" stroke-width="2" fill="none" stroke-linecap="round"/>'
+    + '</svg>';
 }
-var glasses = cfg.glasses
-? '<g fill="none" stroke="#3A3A32" stroke-width="2.4"><circle cx="40" cy="52" r="9"/><circle cx="60" cy="52" r="9"/><path d="M49 52h2"/><path d="M31 51l-5 1"/><path d="M69 51l5 1"/></g>'
-: "";
-var beard = cfg.beard
-? '<path d="M33 60c0 12 8 20 17 20s17-8 17-20c0 8-8 11-17 11s-17-3-17-11z" fill="'+cfg.hair+'" opacity=".85"/>'
-: "";
-return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="דיוקן">'
-+ '<rect width="100" height="100" fill="'+cfg.bg+'"/>'
-+ '<path d="M18 100c0-17 14-26 32-26s32 9 32 26z" fill="#8C8C7E"/>'
-+ '<ellipse cx="50" cy="52" rx="20" ry="24" fill="'+cfg.skin+'"/>'
-+ beard + hair + glasses
-+ '<circle cx="42" cy="52" r="2.2" fill="#2B2B24"/><circle cx="58" cy="52" r="2.2" fill="#2B2B24"/>'
-+ '<path d="M44 64c3 2.5 9 2.5 12 0" stroke="#2B2B24" stroke-width="2" fill="none" stroke-linecap="round"/>'
-+ '</svg>';
-}
+
 function portraitFor(p){
-if(p.photo) return '<img src="'+p.photo+'" alt="'+p.name+'">';
-return avatarSVG(AVATARS[p.av % AVATARS.length]);
+  if(p.photo) return '<img src="'+p.photo+'" alt="'+p.name+'">';
+  return avatarSVG(AVATARS[p.av % AVATARS.length]);
 }
+
+/* ---------------------------------------------------------------
+   Home
+--------------------------------------------------------------- */
 function hour(){ return new Date().getHours(); }
 function greetText(){
-var h = hour();
-if(h < 11) return "בוקר טוב.";
-if(h < 17) return "צהריים טובים.";
-return "ערב טוב.";
+  var h = hour();
+  if(h < 11) return "בוקר טוב.";
+  if(h < 17) return "צהריים טובים.";
+  return "ערב טוב.";
 }
+
 function duePerson(){
-var now = Date.now();
-var learning = S.people.filter(function(p){ return p.stage < 5; });
-if(learning.length) return learning[0];
-var due = S.people.filter(function(p){ return p.due <= now; });
-return due.length ? due[0] : S.people[0];
+  var now = Date.now();
+  var learning = S.people.filter(function(p){ return p.stage < 5; });
+  if(learning.length) return learning[0];
+  var due = S.people.filter(function(p){ return p.due <= now; });
+  return due.length ? due[0] : S.people[0];
 }
+
 function currentQuestion(){
-var open = S.questions.filter(function(q){ return !q.done; });
-return open.length ? open[0] : null;
+  var open = S.questions.filter(function(q){ return !q.done; });
+  return open.length ? open[0] : null;
 }
+
+/* ---------------------------------------------------------------
+   What day it is, and what else this date carries
+
+   The manual note is the family's line and comes first. Under it: a family date
+   if today is one, otherwise something that happened on this date — he reads
+   history for pleasure, and a fact with a year on it is a better opening than an
+   empty box. On a day that has neither, the line simply is not there.
+
+   Only dates worth recognising are listed, so most days show nothing. Adding to
+   the list is just adding a line.
+--------------------------------------------------------------- */
+var HISTORY = [
+  {d:"01-01", y:1959, t:"המהפכה בקובה ניצחה ופידל קסטרו עלה לשלטון"},
+  {d:"01-09", y:1873, t:"חיים נחמן ביאליק נולד"},
+  {d:"01-15", y:1929, t:"מרטין לותר קינג נולד"},
+  {d:"01-20", y:1961, t:"ג׳ון קנדי הושבע לנשיא ארצות הברית"},
+  {d:"01-24", y:1965, t:"וינסטון צ׳רצ׳יל הלך לעולמו"},
+  {d:"01-25", y:1949, t:"נערכו הבחירות לכנסת הראשונה"},
+  {d:"01-30", y:1948, t:"מהטמה גנדי נרצח"},
+  {d:"02-06", y:1952, t:"אליזבת השנייה עלתה לכס המלוכה בבריטניה"},
+  {d:"02-11", y:1990, t:"נלסון מנדלה שוחרר אחרי עשרים ושבע שנים בכלא"},
+  {d:"02-14", y:1949, t:"הכנסת הראשונה התכנסה בירושלים"},
+  {d:"02-20", y:1962, t:"ג׳ון גלן היה האמריקאי הראשון שהקיף את כדור הארץ"},
+  {d:"03-05", y:1953, t:"יוסיף סטלין מת"},
+  {d:"03-10", y:1876, t:"אלכסנדר גרהם בל העביר את שיחת הטלפון הראשונה"},
+  {d:"03-14", y:1879, t:"אלברט איינשטיין נולד"},
+  {d:"03-18", y:1965, t:"אלכסיי לאונוב יצא להליכת החלל הראשונה"},
+  {d:"03-26", y:1979, t:"הסכם השלום עם מצרים נחתם בוושינגטון"},
+  {d:"03-31", y:1979, t:"ישראל זכתה באירוויזיון עם ״הללויה״"},
+  {d:"04-06", y:1896, t:"האולימפיאדה המודרנית הראשונה נפתחה באתונה"},
+  {d:"04-07", y:1977, t:"מכבי תל אביב זכתה לראשונה באליפות אירופה בכדורסל"},
+  {d:"04-12", y:1961, t:"יורי גגארין היה האדם הראשון בחלל"},
+  {d:"04-15", y:1912, t:"הטיטניק טבע בלב האוקיינוס"},
+  {d:"04-18", y:1955, t:"אלברט איינשטיין הלך לעולמו"},
+  {d:"04-22", y:1978, t:"ישראל זכתה לראשונה באירוויזיון עם ״א-ב-ני-בי״"},
+  {d:"04-24", y:1990, t:"טלסקופ החלל האבל שוגר"},
+  {d:"05-05", y:1961, t:"אלן שפרד היה האמריקאי הראשון בחלל"},
+  {d:"05-08", y:1945, t:"מלחמת העולם השנייה הסתיימה באירופה"},
+  {d:"05-11", y:1949, t:"ישראל התקבלה כחברה באו״ם"},
+  {d:"05-14", y:1948, t:"מדינת ישראל הוכרזה בתל אביב"},
+  {d:"05-25", y:1961, t:"קנדי הכריז שאמריקה תנחית אדם על הירח עד סוף העשור"},
+  {d:"05-29", y:1953, t:"הילרי וטנזינג עלו ראשונים על פסגת האוורסט"},
+  {d:"06-05", y:1967, t:"מלחמת ששת הימים פרצה"},
+  {d:"06-06", y:1944, t:"בעלות הברית נחתו בנורמנדי"},
+  {d:"06-10", y:1964, t:"המוביל הארצי נחנך והחל להוליך מים לנגב"},
+  {d:"07-04", y:1976, t:"מבצע אנטבה — החטופים הוחזרו ארצה"},
+  {d:"07-05", y:1950, t:"חוק השבות התקבל בכנסת"},
+  {d:"07-06", y:1885, t:"לואי פסטר חיסן לראשונה נגד כלבת"},
+  {d:"07-14", y:1789, t:"הבסטיליה נפרצה בפריז"},
+  {d:"07-16", y:1969, t:"אפולו 11 שוגרה לדרכה אל הירח"},
+  {d:"07-20", y:1969, t:"אפולו 11 נחתה על הירח"},
+  {d:"07-30", y:1966, t:"אנגליה זכתה במונדיאל, בפעם היחידה עד היום"},
+  {d:"08-15", y:1947, t:"הודו קיבלה עצמאות"},
+  {d:"08-28", y:1963, t:"מרטין לותר קינג נשא את נאום ״יש לי חלום״"},
+  {d:"09-02", y:1945, t:"מלחמת העולם השנייה הסתיימה סופית, עם כניעת יפן"},
+  {d:"09-13", y:1993, t:"הסכם אוסלו נחתם על מדשאות הבית הלבן"},
+  {d:"09-17", y:1978, t:"הסכמי קמפ דיוויד נחתמו"},
+  {d:"09-28", y:1928, t:"אלכסנדר פלמינג גילה את הפניצילין"},
+  {d:"10-01", y:1949, t:"הרפובליקה העממית של סין הוכרזה"},
+  {d:"10-04", y:1957, t:"ספוטניק, הלוויין הראשון, שוגר לחלל"},
+  {d:"10-06", y:1973, t:"מלחמת יום הכיפורים פרצה"},
+  {d:"10-14", y:1947, t:"צ׳אק ייגר שבר לראשונה את מחסום הקול"},
+  {d:"10-22", y:1879, t:"אדיסון הדליק נורת ליבון ששרדה שעות רבות"},
+  {d:"10-26", y:1994, t:"הסכם השלום עם ירדן נחתם בערבה"},
+  {d:"10-29", y:1956, t:"מבצע קדש נפתח בסיני"},
+  {d:"11-02", y:1917, t:"הצהרת בלפור פורסמה"},
+  {d:"11-09", y:1989, t:"חומת ברלין נפלה"},
+  {d:"11-19", y:1977, t:"אנואר סאדאת נחת בישראל"},
+  {d:"11-22", y:1963, t:"ג׳ון קנדי נרצח בדאלאס"},
+  {d:"11-29", y:1947, t:"האו״ם אישר את תוכנית החלוקה"},
+  {d:"12-03", y:1967, t:"כריסטיאן ברנרד ביצע את השתלת הלב הראשונה"},
+  {d:"12-10", y:1966, t:"ש״י עגנון קיבל את פרס נובל לספרות"},
+  {d:"12-17", y:1903, t:"האחים רייט המריאו בטיסה המוטורית הראשונה"},
+  {d:"12-28", y:1895, t:"האחים לומייר ערכו את ההקרנה הראשונה בקולנוע"},
+
+  /* יוון ורומא העתיקה — תאריכים שמוסכם עליהם, לא כולם בוודאות מלאה */
+  {d:"04-21", y:753,  bce:true, t:"רומא נוסדה, לפי המסורת, בידי רומולוס"},
+  {d:"01-10", y:49,   bce:true, t:"יוליוס קיסר חצה את נהר הרוביקון ופתח במלחמת אזרחים"},
+  {d:"03-15", y:44,   bce:true, t:"יוליוס קיסר נרצח בסנאט הרומי"},
+  {d:"09-02", y:31,   bce:true, t:"אוקטביאנוס ניצח את אנטוניוס וקלאופטרה בקרב הימי אצל אקטיום"},
+  {d:"08-12", y:30,   bce:true, t:"קלאופטרה, מלכת מצרים האחרונה, הלכה לעולמה"},
+  {d:"01-16", y:27,   bce:true, t:"אוקטביאנוס קיבל את התואר אוגוסטוס והפך לקיסר הרומי הראשון"},
+  {d:"08-24", y:79,   t:"הר הגעש וזוב התפרץ וכיסה את פומפיי באפר"},
+  {d:"06-09", y:68,   t:"הקיסר נירון הלך לעולמו"},
+  {d:"09-04", y:476,  t:"נפילת רומא — הקיסר הרומי המערבי האחרון הודח"},
+
+  /* היסטוריה מאוחרת יותר */
+  {d:"06-15", y:1215, t:"מגנה כרטה נחתמה באנגליה והגבילה לראשונה את סמכות המלך"},
+  {d:"05-29", y:1453, t:"קונסטנטינופול נפלה בידי העות׳מאנים"},
+  {d:"10-12", y:1492, t:"קולומבוס הגיע ליבשת אמריקה"},
+  {d:"10-31", y:1517, t:"מרטין לותר פרסם את תזותיו וגרם לרפורמציה"},
+  {d:"07-04", y:1776, t:"ארצות הברית הכריזה על עצמאותה"},
+  {d:"06-18", y:1815, t:"נפוליאון הובס סופית בקרב וטרלו"},
+  {d:"07-28", y:1914, t:"מלחמת העולם הראשונה פרצה"},
+  {d:"11-07", y:1917, t:"המהפכה הבולשביקית ברוסיה"},
+  {d:"09-01", y:1939, t:"מלחמת העולם השנייה פרצה עם הפלישה לפולין"},
+
+  /* ישראל, שמונים השנים האחרונות */
+  {d:"04-25", y:1982, t:"ישראל השלימה את הנסיגה מסיני, לפי הסכם השלום עם מצרים"},
+  {d:"09-19", y:1988, t:"הלוויין הישראלי הראשון, אופק 1, שוגר לחלל"},
+  {d:"12-10", y:1978, t:"מנחם בגין ואנואר סאדאת קיבלו יחד את פרס נובל לשלום"},
+  {d:"07-30", y:1992, t:"יעל ארד זכתה במדליית האולימפיאדה הראשונה של ישראל, בג׳ודו"},
+  {d:"05-09", y:1998, t:"דנה אינטרנשיונל זכתה באירוויזיון"},
+  {d:"08-22", y:2004, t:"גל פרידמן זכה במדליית הזהב האולימפית הראשונה של ישראל, בגלישת רוח"},
+  {d:"06-11", y:2013, t:"גוגל רכשה את waze, אפליקציית הניווט הישראלית"},
+  {d:"05-12", y:2018, t:"נטע ברזילי זכתה באירוויזיון"}
+];
+
+function pad2(n){ return (n < 10 ? "0" : "") + n; }
+function dayKey(d){ return pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+
+/* The family types 28/08 — day first, the way it is written here. */
+function normDate(txt){
+  var m = String(txt || "").match(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})/);
+  return m ? pad2(parseInt(m[2], 10)) + "-" + pad2(parseInt(m[1], 10)) : "";
+}
+
+function todayOccasion(now){
+  var k = dayKey(now);
+  var hit = (S.occasions || []).filter(function(o){
+    return o.text && normDate(o.date) === k;
+  });
+  return hit.length ? hit[0].text : "";
+}
+
+function todayHistory(now){
+  var k = dayKey(now);
+  var hits = HISTORY.filter(function(h){ return h.d === k; });
+  if(!hits.length) return "";
+  var h = hits[now.getFullYear() % hits.length];
+  /* h.bce marks a BCE year stored as a positive number (e.g. 44 for "44 BCE").
+     There is no year 0, so the gap across the BCE/CE line is one year short of
+     naive subtraction. */
+  var years = h.bce ? (now.getFullYear() + h.y - 1) : (now.getFullYear() - h.y);
+  return "היום לפני " + years + (years <= 10 ? " שנים" : " שנה") + " — " + h.t + ".";
+}
+
 function renderHome(){
-var now = new Date();
-$("today-date").textContent = now.toLocaleDateString("he-IL",{weekday:"long", day:"numeric", month:"long"});
-$("orient-day").textContent  = "היום " + now.toLocaleDateString("he-IL",{weekday:"long"});
-$("orient-date").textContent = now.toLocaleDateString("he-IL",{day:"numeric", month:"long", year:"numeric"});
-$("orient-note").textContent = S.todayNote || "";
-$("greeting").textContent = greetText();
-var p = duePerson();
-$("note-faces").textContent = p ? (p.name + ", " + p.relation) : "אין מה לחזור היום";
-var q = currentQuestion();
-$("note-question").textContent = q ? (q.from + " שאלה אותך משהו") : "אין שאלה חדשה כרגע";
-$("note-puzzle").textContent = (S.puzzleIndex % 3 !== 2)
-? "מילה שצריך למצוא"
-: "ארבעה דברים לסדר לפי הזמן";
-[["card-faces","faces"],["card-question","question"],["card-puzzle","puzzle"]].forEach(function(pair){
-var el = $(pair[0]);
-var isDone = S.done[pair[1]];
-el.classList.toggle("done", isDone);
-el.querySelector(".card-mark").classList.toggle("hidden", !isDone);
-});
-var left = ["faces","question","puzzle"].filter(function(k){ return !S.done[k]; }).length;
-$("greeting-sub").textContent = left === 0
-? "סיימת להיום. תודה — דנה תשמח לשמוע."
-: (left === 3 ? "שלושה דברים מחכים לך היום. אפשר גם רק אחד."
-: "נשארו " + (left === 1 ? "עוד אחד." : "עוד שניים."));
+  var now = new Date();
+  $("today-date").textContent = now.toLocaleDateString("he-IL",{weekday:"long", day:"numeric", month:"long"});
+  $("orient-day").textContent  = "היום " + now.toLocaleDateString("he-IL",{weekday:"long"});
+  $("orient-date").textContent = now.toLocaleDateString("he-IL",{day:"numeric", month:"long", year:"numeric"});
+  $("orient-note").textContent = S.todayNote || "";
+  $("orient-extra").textContent = todayOccasion(now) || todayHistory(now);
+  $("greeting").textContent = greetText();
+
+  var p = duePerson();
+  $("note-faces").textContent = p ? (p.name + ", " + p.relation) : "אין מה לחזור היום";
+
+  var q = currentQuestion();
+  $("note-question").textContent = q ? (q.from + " שאלה אותך משהו") : "אין שאלה חדשה כרגע";
+
+  $("note-puzzle").textContent = willOfferSeq()
+    ? "ארבעה דברים לסדר לפי הזמן"
+    : "מילה שצריך למצוא";
+
+  [["card-faces","faces"],["card-question","question"],["card-puzzle","puzzle"]].forEach(function(pair){
+    var el = $(pair[0]);
+    var isDone = S.done[pair[1]];
+    el.classList.toggle("done", isDone);
+    el.querySelector(".card-mark").classList.toggle("hidden", !isDone);
+  });
+
+  var left = ["faces","question","puzzle"].filter(function(k){ return !S.done[k]; }).length;
+  $("greeting-sub").textContent = left === 0
+    ? "סיימת להיום. תודה — דנה תשמח לשמוע."
+    : (left === 3 ? "שלושה דברים מחכים לך היום. אפשר גם רק אחד."
+                  : "נשארו " + (left === 1 ? "עוד אחד." : "עוד שניים."));
 }
+
+/* ---------------------------------------------------------------
+   Faces — errorless learning, then fading cues, then spacing
+--------------------------------------------------------------- */
+/*
+   Calibrated for someone whose cognition is intact. Effortful free recall is the
+   default, because retrieval that costs something is what builds the trace.
+   The supported mode is a fallback the app drops into after two consecutive
+   misses on the same person — not the starting point.
+*/
 var STAGE_LABEL = ["להכיר","לקשור","להיזכר","לבדוק","להיזכר","לחזור"];
 var INTERVALS   = [1, 3, 7, 14, 30, 60];   // days
+
 var facesPerson = null;
+
 function otherNames(p, n){
-var pool = S.people.filter(function(x){ return x.id !== p.id; })
-.map(function(x){ return x.name; });
-for(var i = pool.length - 1; i > 0; i--){
-var j = Math.floor(Math.random() * (i + 1));
-var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+  var pool = S.people.filter(function(x){ return x.id !== p.id; })
+                     .map(function(x){ return x.name; });
+  for(var i = pool.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+  }
+  return pool.slice(0, n);
 }
-return pool.slice(0, n);
-}
+
 function facesDone(actions, label){
-var next = document.createElement("button");
-next.className = "btn btn-primary";
-next.textContent = label || "מספיק להיום";
-tap(next, function(){
-S.done.faces = true;
-save(); renderHome(); show("s-home");
-});
-var more = document.createElement("button");
-more.className = "btn btn-quiet";
-more.textContent = "עוד אחד";
-tap(more, function(){ S.done.faces = true; save(); renderFaces(); });
-actions.appendChild(next);
-actions.appendChild(more);
+  var next = document.createElement("button");
+  next.className = "btn btn-primary";
+  next.textContent = label || "מספיק להיום";
+  tap(next, function(){
+    S.done.faces = true;
+    save(); renderHome(); show("s-home");
+  });
+  var more = document.createElement("button");
+  more.className = "btn btn-quiet";
+  more.textContent = "עוד אחד";
+  tap(more, function(){ S.done.faces = true; save(); renderFaces(); });
+  actions.appendChild(next);
+  actions.appendChild(more);
 }
+
 function renderFaces(){
-facesPerson = duePerson();
-var p = facesPerson;
-if(!p) return;
-$("faces-stage").textContent = STAGE_LABEL[Math.min(p.stage,5)];
-$("faces-portrait").innerHTML = portraitFor(p);
-$("faces-feedback").textContent = "";
-$("faces-feedback").className = "feedback";
-$("faces-hint").classList.add("hidden");
-var actions = $("faces-actions");
-actions.innerHTML = "";
-var nameEl = $("faces-name"), relEl = $("faces-rel"), factEl = $("faces-fact");
-if(p.stage === 0){
-nameEl.textContent = p.name;
-relEl.textContent  = p.relation;
-factEl.textContent = p.fact;
-var b0 = document.createElement("button");
-b0.className = "btn btn-primary";
-b0.textContent = "הלאה";
-tap(b0, function(){ p.stage = 1; save(); renderFaces(); });
-actions.appendChild(b0);
-return;
+  facesPerson = duePerson();
+  var p = facesPerson;
+  if(!p) return;
+
+  $("faces-stage").textContent = STAGE_LABEL[Math.min(p.stage,5)];
+  $("faces-portrait").innerHTML = portraitFor(p);
+  $("faces-feedback").textContent = "";
+  $("faces-feedback").className = "feedback";
+  $("faces-hint").classList.add("hidden");
+
+  var actions = $("faces-actions");
+  actions.innerHTML = "";
+
+  var nameEl = $("faces-name"), relEl = $("faces-rel"), factEl = $("faces-fact");
+
+  /* Stage 0 — introduce. */
+  if(p.stage === 0){
+    nameEl.textContent = p.name;
+    relEl.textContent  = p.relation;
+    factEl.textContent = p.fact;
+    var b0 = document.createElement("button");
+    b0.className = "btn btn-primary";
+    b0.textContent = "הלאה";
+    tap(b0, function(){ p.stage = 1; save(); renderFaces(); });
+    actions.appendChild(b0);
+    return;
+  }
+
+  /* Stage 1 — the anchor. He builds the link himself; that is the whole point. */
+  if(p.stage === 1){
+    nameEl.textContent = p.name;
+    relEl.textContent  = p.relation;
+    factEl.textContent = "את מי או מה השם הזה מזכיר לך? אמור לעצמך בקול.";
+    var b1 = document.createElement("button");
+    b1.className = "btn btn-primary";
+    b1.textContent = "הלאה";
+    tap(b1, function(){ p.stage = 2; save(); renderFaces(); });
+    actions.appendChild(b1);
+    return;
+  }
+
+  /* Struggled twice on this face — give one supported pass, then back to normal. */
+  if(p.misses >= 2){
+    nameEl.textContent = "מי זה?";
+    relEl.textContent  = p.relation;
+    factEl.textContent = "";
+    $("faces-hint").textContent = p.name;
+    $("faces-hint").classList.remove("hidden");
+    renderChoices(p, 2, actions);
+    return;
+  }
+
+  /* Stage 3 — recognition, as an objective check on the self-scored rounds. */
+  if(p.stage === 3){
+    nameEl.textContent = "מי זה?";
+    relEl.textContent  = p.relation;
+    factEl.textContent = "";
+    renderChoices(p, 4, actions);
+    return;
+  }
+
+  /* Stages 2, 4, 5 — free recall, scored by him. The hardest and most useful mode. */
+  nameEl.textContent = "מי זה?";
+  relEl.textContent  = "";
+  factEl.textContent = "";
+
+  var reveal = document.createElement("button");
+  reveal.className = "btn btn-primary";
+  reveal.textContent = "לראות את השם";
+  tap(reveal, function(){
+    nameEl.textContent = p.name;
+    relEl.textContent  = p.relation;
+    factEl.textContent = p.fact;
+    actions.innerHTML = "";
+
+    var knew = document.createElement("button");
+    knew.className = "btn btn-primary";
+    knew.textContent = "ידעתי";
+    tap(knew, function(){ scoreFace(true, actions); });
+
+    /*
+      A name that would not come is not a name he has lost. Folding that into
+      "לא ידעתי" would push the card back a stage for a retrieval delay, and
+      would tell him he forgot his own great-granddaughter when he did not.
+    */
+    var tot = document.createElement("button");
+    tot.className = "btn btn-quiet";
+    tot.textContent = "ידעתי, לא יצא לי";
+    tap(tot, function(){ scoreFace("tot", actions); });
+
+    var missed = document.createElement("button");
+    missed.className = "btn btn-quiet";
+    missed.textContent = "לא ידעתי";
+    tap(missed, function(){ scoreFace(false, actions); });
+
+    actions.appendChild(knew);
+    actions.appendChild(tot);
+    actions.appendChild(missed);
+  });
+  actions.appendChild(reveal);
 }
-if(p.stage === 1){
-nameEl.textContent = p.name;
-relEl.textContent  = p.relation;
-factEl.textContent = "את מי או מה השם הזה מזכיר לך? אמור לעצמך בקול.";
-var b1 = document.createElement("button");
-b1.className = "btn btn-primary";
-b1.textContent = "הלאה";
-tap(b1, function(){ p.stage = 2; save(); renderFaces(); });
-actions.appendChild(b1);
-return;
-}
-if(p.misses >= 2){
-nameEl.textContent = "מי זה?";
-relEl.textContent  = p.relation;
-factEl.textContent = "";
-$("faces-hint").textContent = p.name;
-$("faces-hint").classList.remove("hidden");
-renderChoices(p, 2, actions);
-return;
-}
-if(p.stage === 3){
-nameEl.textContent = "מי זה?";
-relEl.textContent  = p.relation;
-factEl.textContent = "";
-renderChoices(p, 4, actions);
-return;
-}
-nameEl.textContent = "מי זה?";
-relEl.textContent  = "";
-factEl.textContent = "";
-var reveal = document.createElement("button");
-reveal.className = "btn btn-primary";
-reveal.textContent = "לראות את השם";
-tap(reveal, function(){
-nameEl.textContent = p.name;
-relEl.textContent  = p.relation;
-factEl.textContent = p.fact;
-actions.innerHTML = "";
-var knew = document.createElement("button");
-knew.className = "btn btn-primary";
-knew.textContent = "ידעתי";
-tap(knew, function(){ scoreFace(true, actions); });
-var tot = document.createElement("button");
-tot.className = "btn btn-quiet";
-tot.textContent = "ידעתי, לא יצא לי";
-tap(tot, function(){ scoreFace("tot", actions); });
-var missed = document.createElement("button");
-missed.className = "btn btn-quiet";
-missed.textContent = "לא ידעתי";
-tap(missed, function(){ scoreFace(false, actions); });
-actions.appendChild(knew);
-actions.appendChild(tot);
-actions.appendChild(missed);
-});
-actions.appendChild(reveal);
-}
+
 function renderChoices(p, count, actions){
-var opts = otherNames(p, count - 1).concat([p.name]);
-for(var i = opts.length - 1; i > 0; i--){
-var j = Math.floor(Math.random() * (i + 1));
-var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+  var opts = otherNames(p, count - 1).concat([p.name]);
+  for(var i = opts.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
+  }
+  opts.forEach(function(nm){
+    var b = document.createElement("button");
+    b.className = "choice";
+    b.textContent = nm;
+    tap(b, function(){
+      var kids = actions.querySelectorAll("button");
+      for(var k=0;k<kids.length;k++){
+        kids[k].disabled = true;
+        if(kids[k].textContent === p.name) kids[k].classList.add("is-right");
+      }
+      scoreFace(nm === p.name, actions);
+    });
+    actions.appendChild(b);
+  });
 }
-opts.forEach(function(nm){
-var b = document.createElement("button");
-b.className = "choice";
-b.textContent = nm;
-tap(b, function(){
-var kids = actions.querySelectorAll("button");
-for(var k=0;k<kids.length;k++){
-kids[k].disabled = true;
-if(kids[k].textContent === p.name) kids[k].classList.add("is-right");
-}
-scoreFace(nm === p.name, actions);
-});
-actions.appendChild(b);
-});
-}
+
 function scoreFace(ok, actions){
-var p = facesPerson;
-var fb = $("faces-feedback");
-actions.innerHTML = "";
-if(ok === "tot"){
-p.misses = 0;
-fb.className = "feedback good";
-fb.textContent = "זה קורה. הזיכרון היה שם.";
-if(p.stage >= 5){
-p.due = Date.now() + INTERVALS[Math.max(0, Math.min(p.reps, INTERVALS.length - 1) - 1)] * 86400000;
+  var p = facesPerson;
+  var fb = $("faces-feedback");
+  actions.innerHTML = "";
+
+  /* Tip of the tongue: the memory held, the word was slow. Keep the stage,
+     shorten the interval a little, and say so plainly. */
+  if(ok === "tot"){
+    p.misses = 0;
+    fb.className = "feedback good";
+    fb.textContent = "זה קורה. הזיכרון היה שם.";
+    if(p.stage >= 5){
+      p.due = Date.now() + INTERVALS[Math.max(0, Math.min(p.reps, INTERVALS.length - 1) - 1)] * 86400000;
+    }
+    save();
+    facesDone(actions);
+    return;
+  }
+
+  if(ok){
+    p.misses = 0;
+    fb.className = "feedback good";
+    if(p.stage >= 5){
+      p.reps++;
+      var days = INTERVALS[Math.min(p.reps, INTERVALS.length - 1)];
+      p.due = Date.now() + days * 86400000;
+      fb.textContent = "נחזור אליו בעוד " + days + (days === 1 ? " יום." : " ימים.");
+    } else {
+      p.stage++;
+      if(p.stage === 5){
+        p.reps = 0;
+        p.due = Date.now() + INTERVALS[0] * 86400000;
+        fb.textContent = "זהו, " + p.name + " נכנס. נחזור אליו מחר.";
+      } else {
+        fb.textContent = "יפה.";
+      }
+    }
+  } else {
+    p.misses++;
+    fb.className = "feedback gentle";
+    fb.textContent = "זה " + p.name + ". נחזור אליו עוד מעט.";
+    if(p.stage >= 5){
+      p.reps = Math.max(0, p.reps - 2);
+      p.due = Date.now() + 86400000;
+    } else {
+      p.stage = Math.max(p.stage - 1, 2);
+    }
+  }
+  save();
+  facesDone(actions);
 }
-save();
-facesDone(actions);
-return;
+
+/* ---------------------------------------------------------------
+   Question — voice, because speaking costs him nothing
+--------------------------------------------------------------- */
+var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0;
+
+/* One audio element only, ever. Tapping "listen again" while it plays stops it —
+   otherwise repeated taps stack copies of the recording on top of each other. */
+var player = null;
+
+function stopPlayback(){
+  if(player){
+    player.pause();
+    try{ player.currentTime = 0; }catch(e){}
+  }
+  var b = $("q-play");
+  if(b) b.textContent = "▶ להאזין שוב";
 }
-if(ok){
-p.misses = 0;
-fb.className = "feedback good";
-if(p.stage >= 5){
-p.reps++;
-var days = INTERVALS[Math.min(p.reps, INTERVALS.length - 1)];
-p.due = Date.now() + days * 86400000;
-fb.textContent = "נחזור אליו בעוד " + days + (days === 1 ? " יום." : " ימים.");
-} else {
-p.stage++;
-if(p.stage === 5){
-p.reps = 0;
-p.due = Date.now() + INTERVALS[0] * 86400000;
-fb.textContent = "זהו, " + p.name + " נכנס. נחזור אליו מחר.";
-} else {
-fb.textContent = "יפה.";
-}
-}
-} else {
-p.misses++;
-fb.className = "feedback gentle";
-fb.textContent = "זה " + p.name + ". נחזור אליו עוד מעט.";
-if(p.stage >= 5){
-p.reps = Math.max(0, p.reps - 2);
-p.due = Date.now() + 86400000;
-} else {
-p.stage = Math.max(p.stage - 1, 2);
-}
-}
-save();
-facesDone(actions);
-}
-var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0, player = null;  function stopPlayback(){ if(player){ player.pause(); try{ player.currentTime = 0; }catch(e){} } var b = $("q-play"); if(b) b.textContent = "▶ להאזין שוב"; }
+
 function renderQuestion(){
-var q = currentQuestion();
-$("q-feedback").textContent = "";
-stopPlayback(); $("q-play").classList.add("hidden");
-$("q-send").classList.add("hidden");
-$("q-after").innerHTML = "";
-$("rec-label").textContent = "ספר לי";
-$("rec-time").textContent = "";
-$("rec-btn").classList.remove("recording");
-if(!q){
-$("q-from").textContent = "אין שאלה חדשה";
-$("q-text").textContent = "כשמישהו מהמשפחה ישאל אותך משהו, זה יופיע כאן.";
-$("rec-btn").classList.add("hidden");
-return;
+  var q = currentQuestion();
+  $("q-feedback").textContent = "";
+  stopPlayback();
+  $("q-play").classList.add("hidden");
+  $("q-send").classList.add("hidden");
+  $("q-after").innerHTML = "";
+  $("rec-label").textContent = "ספר לי";
+  $("rec-time").textContent = "";
+  $("rec-btn").classList.remove("recording");
+
+  if(!q){
+    $("q-from").textContent = "אין שאלה חדשה";
+    $("q-text").textContent = "כשמישהו מהמשפחה ישאל אותך משהו, זה יופיע כאן.";
+    $("rec-btn").classList.add("hidden");
+    return;
+  }
+  $("rec-btn").classList.remove("hidden");
+  $("q-from").textContent = "מ" + q.from;
+  $("q-text").textContent = q.text;
 }
-$("rec-btn").classList.remove("hidden");
-$("q-from").textContent = "מ" + q.from;
-$("q-text").textContent = q.text;
-}
+
 function fmtTime(ms){
-var s = Math.floor(ms/1000);
-return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2);
+  var s = Math.floor(ms/1000);
+  return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2);
 }
+
 function stopRec(){
-if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
-clearInterval(recTimer);
+  if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
+  clearInterval(recTimer);
 }
+
 tap($("rec-btn"), function(){
-stopPlayback(); if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
-if(!navigator.mediaDevices || !window.MediaRecorder){
-$("q-feedback").className = "feedback gentle";
-$("q-feedback").textContent = "אין כאן מיקרופון, אבל ההקלטה תעבוד על הטאבלט.";
-$("q-send").classList.remove("hidden");
-return;
-}
-navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-chunks = [];
-mediaRec = new MediaRecorder(stream);
-mediaRec.ondataavailable = function(e){ if(e.data.size) chunks.push(e.data); };
-mediaRec.onstop = function(){
-stream.getTracks().forEach(function(t){ t.stop(); });
-if(recURL) URL.revokeObjectURL(recURL); player = null;
-recURL = URL.createObjectURL(new Blob(chunks, {type:"audio/webm"}));
-$("rec-btn").classList.remove("recording");
-$("rec-label").textContent = "להקליט שוב";
-$("q-feedback").className = "feedback good";
-$("q-feedback").textContent = "נשמר.";
-$("q-play").classList.remove("hidden");
-$("q-send").classList.remove("hidden");
-};
-mediaRec.start();
-recStart = Date.now();
-$("rec-btn").classList.add("recording");
-$("rec-label").textContent = "סיימתי";
-recTimer = setInterval(function(){
-$("rec-time").textContent = fmtTime(Date.now() - recStart);
-}, 500);
-}).catch(function(){
-$("q-feedback").className = "feedback gentle";
-$("q-feedback").textContent = "לא הצלחנו להפעיל את המיקרופון. אפשר לנסות שוב.";
-$("q-send").classList.remove("hidden");
+  stopPlayback();
+  if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
+
+  if(!navigator.mediaDevices || !window.MediaRecorder){
+    /* No mic here — keep the flow testable rather than dead-ending. */
+    $("q-feedback").className = "feedback gentle";
+    $("q-feedback").textContent = "אין כאן מיקרופון, אבל ההקלטה תעבוד על הטאבלט.";
+    $("q-send").classList.remove("hidden");
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    chunks = [];
+    mediaRec = new MediaRecorder(stream);
+    mediaRec.ondataavailable = function(e){ if(e.data.size) chunks.push(e.data); };
+    mediaRec.onstop = function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      if(recURL) URL.revokeObjectURL(recURL);
+      player = null;
+      recURL = URL.createObjectURL(new Blob(chunks, {type:"audio/webm"}));
+      $("rec-btn").classList.remove("recording");
+      $("rec-label").textContent = "להקליט שוב";
+      $("q-feedback").className = "feedback good";
+      $("q-feedback").textContent = "נשמר.";
+      $("q-play").classList.remove("hidden");
+      $("q-send").classList.remove("hidden");
+      fit();
+    };
+    mediaRec.start();
+    recStart = Date.now();
+    $("rec-btn").classList.add("recording");
+    $("rec-label").textContent = "סיימתי";
+    recTimer = setInterval(function(){
+      $("rec-time").textContent = fmtTime(Date.now() - recStart);
+    }, 500);
+  }).catch(function(){
+    $("q-feedback").className = "feedback gentle";
+    $("q-feedback").textContent = "לא הצלחנו להפעיל את המיקרופון. אפשר לנסות שוב.";
+    $("q-send").classList.remove("hidden");
+  });
 });
-});
+
 tap($("q-play"), function(){
-if(!recURL) return;
-if(player && !player.paused){ stopPlayback(); return; } if(!player){ player = new Audio(recURL); player.addEventListener("ended", stopPlayback); } try{ player.currentTime = 0; }catch(e){} $("q-play").textContent = "■ להפסיק"; player.play().catch(function(){ stopPlayback(); });
+  if(!recURL) return;
+  if(player && !player.paused){ stopPlayback(); return; }
+  if(!player){
+    player = new Audio(recURL);
+    player.addEventListener("ended", stopPlayback);
+  }
+  try{ player.currentTime = 0; }catch(e){}
+  $("q-play").textContent = "■ להפסיק";
+  player.play().catch(function(){ stopPlayback(); });
 });
+
+/*
+   With ~15 people each holding one open question, a strict one-a-day means the
+   person at the back waits a fortnight and the loop dies. So: one is the floor,
+   never the ceiling. On a good day he takes another, and the queue drains at
+   whatever rate he feels like. Never a quota, never a prompt to do more.
+*/
 tap($("q-send"), function(){
-var q = currentQuestion();
-if(q) q.done = true;
-S.done.question = true;
-save();
-var fb = $("q-feedback");
-fb.className = "feedback good";
-fb.textContent = "נשלח" + (q ? " ל" + q.from : "") + ".";
-$("rec-btn").classList.add("hidden");
-stopPlayback(); $("q-play").classList.add("hidden");
-$("q-send").classList.add("hidden");
-var box = $("q-after");
-box.innerHTML = "";
-var next = currentQuestion();
-if(next){
-var more = document.createElement("button");
-more.className = "btn btn-quiet";
-more.textContent = next.from + " שאל אותך משהו — לענות גם לו?";
-tap(more, function(){ renderQuestion(); });
-box.appendChild(more);
-}
-var done = document.createElement("button");
-done.className = "btn btn-primary";
-done.textContent = "מספיק להיום";
-tap(done, function(){ renderHome(); show("s-home"); });
-box.appendChild(done);
+  var q = currentQuestion();
+  if(q) q.done = true;
+  S.done.question = true;
+  save();
+
+  var fb = $("q-feedback");
+  fb.className = "feedback good";
+  fb.textContent = "נשלח" + (q ? " ל" + q.from : "") + ".";
+  $("rec-btn").classList.add("hidden");
+  stopPlayback();
+  $("q-play").classList.add("hidden");
+  $("q-send").classList.add("hidden");
+
+  var box = $("q-after");
+  box.innerHTML = "";
+
+  var next = currentQuestion();
+  if(next){
+    var more = document.createElement("button");
+    more.className = "btn btn-quiet";
+    more.textContent = next.from + " שאל אותך משהו — לענות גם לו?";
+    tap(more, function(){ renderQuestion(); });
+    box.appendChild(more);
+  }
+
+  var done = document.createElement("button");
+  done.className = "btn btn-primary";
+  done.textContent = "מספיק להיום";
+  tap(done, function(){ renderHome(); show("s-home"); });
+  box.appendChild(done);
 });
+
+/* ---------------------------------------------------------------
+   Puzzle — sequencing, drawn from a life he actually lived
+--------------------------------------------------------------- */
+/*
+   Four items, not two. Ordering four things means holding several relations in
+   working memory at once — a real load, and one his knowledge can actually carry.
+*/
 var PUZZLES = [
-[{t:"הכרזת העצמאות",y:1948},{t:"מבצע קדש",y:1956},{t:"משפט אייכמן",y:1961},{t:"מלחמת ששת הימים",y:1967}],
-[{t:"המוביל הארצי נחנך",y:1964},{t:"הנחיתה על הירח",y:1969},{t:"האולימפיאדה במינכן",y:1972},{t:"מבצע אנטבה",y:1976}],
-[{t:"ביקור סאדאת בירושלים",y:1977},{t:"מלחמת לבנון הראשונה",y:1982},{t:"נפילת חומת ברלין",y:1989},{t:"הסכם אוסלו",y:1993}],
-[{t:"סוף מלחמת העולם השנייה",y:1945},{t:"תוכנית החלוקה באו״ם",y:1947},{t:"תחילת הצנע",y:1949},{t:"הסכם השילומים",y:1952}],
-[{t:"עלית יצחק רבין לראשות הממשלה",y:1974},{t:"המהפך של בגין",y:1977},{t:"הסכם השלום עם מצרים",y:1979},{t:"מבצע משה",y:1984}]
+  [{t:"הכרזת העצמאות",y:1948},{t:"מבצע קדש",y:1956},{t:"משפט אייכמן",y:1961},{t:"מלחמת ששת הימים",y:1967}],
+  [{t:"המוביל הארצי נחנך",y:1964},{t:"הנחיתה על הירח",y:1969},{t:"האולימפיאדה במינכן",y:1972},{t:"מבצע אנטבה",y:1976}],
+  [{t:"ביקור סאדאת בירושלים",y:1977},{t:"מלחמת לבנון הראשונה",y:1982},{t:"נפילת חומת ברלין",y:1989},{t:"הסכם אוסלו",y:1993}],
+  [{t:"סוף מלחמת העולם השנייה",y:1945},{t:"תוכנית החלוקה באו״ם",y:1947},{t:"תחילת הצנע",y:1949},{t:"הסכם השילומים",y:1952}],
+  [{t:"עלית יצחק רבין לראשות הממשלה",y:1974},{t:"המהפך של בגין",y:1977},{t:"הסכם השלום עם מצרים",y:1979},{t:"מבצע משה",y:1984}]
 ];
+
 var puzzleChosen = [];
+
+/*
+   Word retrieval. This targets the thing he actually notices — a word that will
+   not come — which is a retrieval failure, not a lost word. The cue ladder is
+   the clinical technique: length, then first letter, then opening sound. Asking
+   for a cue is a move in the exercise, not a failure, so nothing is scored down.
+*/
+/*
+  Word retrieval. Two rules, both learned the hard way:
+
+  1. One clue, one answer. "רהיט עם מדפים לספרים" fits כוננית, ספרייה and מדף
+     equally well — and when three answers are right, he says one, sees another
+     on screen, and files it as a failure that never happened. Every clue here
+     names something that one Hebrew word covers and no other.
+  2. Three levels, and the level follows him: two clean solves in a row (no cues
+     asked) move him up, a miss or a full cue-ladder moves him down. It is never
+     shown on screen and never named — no scores, no levels, no "well done".
+*/
 var WORDS = [
-{c:"כלי זכוכית שמניחים בו פרחים",            a:"אגרטל"},
-{c:"רהיט עם מדפים לספרים",                   a:"כוננית"},
-{c:"הבד שתולים על החלון",                    a:"וילון"},
-{c:"הכלי שמסננים בו את התה",                 a:"מסננת"},
-{c:"כף גדולה ועמוקה שמגישים בה מרק",         a:"מצקת"},
-{c:"הכלי הארוך שמשטחים בו בצק",              a:"מערוך"},
-{c:"המכשיר שמשחימים בו פרוסות לחם",          a:"מצנם"},
-{c:"הכלי המחוספס שמגררים עליו ירקות",        a:"פומפייה"},
-{c:"המדף הצר שמתחת לחלון",                   a:"אדן"},
-{c:"הצינור שמוליך מי גשם מהגג למטה",         a:"מרזב"},
-{c:"החדר התת־קרקעי שבו מאחסנים יין",         a:"מרתף"},
-{c:"המבנה שבו מאחסנים תבואה בחווה",          a:"אסם"},
-{c:"הכיסוי שפורשים על שולחן",                a:"מפה"},
-{c:"כלי לחיתוך עץ, עם שיניים",               a:"מסור"},
-{c:"הכלי שבודקים בו אם משטח ישר",            a:"פלס"},
-{c:"הכלי שמהדק חפץ כדי לעבוד עליו",          a:"מלחציים"},
-{c:"כלי חד שמגלפים בו עץ או אבן",            a:"אזמל"},
-{c:"הכלי שמסובבים בו ברגים",                 a:"מברג"},
-{c:"האדם שתופר בגדים לפי מידה",              a:"חייט"},
-{c:"האדם שמייצר רהיטים מעץ",                 a:"נגר"},
-{c:"האדם שמתקן נעליים",                      a:"סנדלר"},
-{c:"האדם שמתקן צינורות בבית",                a:"שרברב"},
-{c:"האדם שמתקן שעונים",                      a:"שען"},
-{c:"האדם שעובד בזהב ובכסף",                  a:"צורף"},
-{c:"האדם שמחבר מתכות באש",                   a:"רתך"},
-{c:"האדם שמנצח על תזמורת",                   a:"מנצח"},
-{c:"האדם שמתרגם בעל פה בזמן אמת",            a:"מתורגמן"},
-{c:"האדם שבונה קירות מאבן או מלבנים",        a:"בנאי"},
-{c:"התנור הקטן שבישלו עליו פעם, עם נפט",     a:"פרימוס"},
-{c:"הרדיו הקטן והנייד שהיה לכולם",           a:"טרנזיסטור"},
-{c:"המכשיר שהכפילו בו דפים לפני מכונת צילום", a:"סטנסיל"},
-{c:"הכרטיס שניקבו בו נסיעה באוטובוס",        a:"כרטיסייה"},
-{c:"המכשיר שהקליט קול על סליל",              a:"רשמקול"},
-{c:"הרוח החמה והיבשה שבאה מהמדבר",           a:"שרב"},
-{c:"הלחות שיורדת על הצמחים בלילה",           a:"טל"},
-{c:"גשם קל מאוד",                            a:"זרזיף"},
-{c:"כלי עם מיתרים שמנגנים עליו בקשת",        a:"כינור"},
-{c:"כלי נשיפה מפליז, עם צינורות מקופלים",    a:"חצוצרה"},
-{c:"כלי נגינה עם שמונים ושמונה קלידים",      a:"פסנתר"},
-{c:"החלק בצד הראש, בין העין לאוזן",          a:"רקה"},
-{c:"השריר שמפריד בין בית החזה לבטן",         a:"סרעפת"},
-{c:"הפרק שמחבר את כף הרגל לשוק",             a:"קרסול"},
-{c:"המקום שבו עוגנות אוניות",                a:"נמל"},
-{c:"המגדל שמאיר בלילה כדי להזהיר ספינות",    a:"מגדלור"},
-{c:"כלי שמראה איפה נמצא הצפון",              a:"מצפן"},
-{c:"המכשיר שמודד את חום הגוף",               a:"מדחום"},
-{c:"האבן היקרה השקופה והקשה מכולן",          a:"יהלום"}
+  /* ---- 1 ---- everyday objects, one obvious name each */
+  {c:"המכשיר שמכניסים לתוכו פרוסת לחם והיא יוצאת קלויה", a:"טוסטר",   lvl:1},
+  {c:"הגליל מעץ שמרדדים בו בצק",                        a:"מערוך",    lvl:1},
+  {c:"הכף הגדולה והעמוקה שיוצקים בה מרק לצלחת",          a:"מצקת",     lvl:1},
+  {c:"הכלי המחוספס שמגררים עליו גזר לסלט",               a:"פומפייה",  lvl:1},
+  {c:"כלי הזכוכית שממלאים במים ומעמידים בו זר פרחים",     a:"אגרטל",    lvl:1},
+  {c:"הבד שתולים על החלון כדי לחסום את האור",             a:"וילון",    lvl:1},
+  {c:"הצינור שמוליך את מי הגשם מהגג אל הקרקע",            a:"מרזב",     lvl:1},
+  {c:"המדף הצר שבתחתית החלון, שמניחים עליו עציץ",         a:"אדן",      lvl:1},
+  {c:"המכשיר שמודד את חום הגוף",                         a:"מדחום",    lvl:1},
+  {c:"הכלי שמסובבים בו בורג",                            a:"מברג",     lvl:1},
+  {c:"הדבר שתולים עליו חולצה בתוך הארון",                 a:"קולב",     lvl:1},
+  {c:"הכלי שמנפחים בו את גלגל האופניים",                 a:"משאבה",    lvl:1},
+  {c:"הכלי עם המקל והזיפים שמנקים בו את הרצפה",           a:"מטאטא",    lvl:1},
+  {c:"הכלי המנוקב ששופכים דרכו אטריות כדי להוציא את המים", a:"מסננת",   lvl:1},
+  {c:"הכלי עם שתי להבים שגוזרים בו נייר",                 a:"מספריים",  lvl:1},
+  {c:"המכשיר הקטן שמאיר בחושך ומחזיקים ביד",              a:"פנס",      lvl:1},
+  {c:"הכלי שמרתיחים בו מים לתה",                          a:"קומקום",   lvl:1},
+  {c:"המוט הקטן ממתכת שדופקים בפטיש לתוך הקיר",           a:"מסמר",     lvl:1},
+
+  /* ---- 2 ---- tools, trades, weather, instruments */
+  {c:"הכלי עם בועת האוויר, שבודקים בו אם המדף ישר",       a:"פלס",      lvl:2},
+  {c:"הכלי שמהדק חפץ לשולחן העבודה כדי שלא יזוז",         a:"מלחציים",  lvl:2},
+  {c:"הכלי החד שמגלפים בו עץ או אבן",                     a:"אזמל",     lvl:2},
+  {c:"הכלי עם השיניים שחותכים בו קרש",                    a:"מסור",     lvl:2},
+  {c:"בעל המלאכה שמתקן נעליים",                           a:"סנדלר",    lvl:2},
+  {c:"בעל המלאכה שמתקן צינורות מים בבית",                 a:"שרברב",    lvl:2},
+  {c:"בעל המלאכה שמתקן שעונים",                           a:"שען",      lvl:2},
+  {c:"בעל המלאכה שעושה תכשיטים מזהב ומכסף",               a:"צורף",     lvl:2},
+  {c:"בעל המלאכה שמחבר חלקי מתכת באש",                    a:"רתך",      lvl:2},
+  {c:"בעל המלאכה שבונה רהיטים מעץ",                       a:"נגר",      lvl:2},
+  {c:"מי שמתרגם בעל פה בזמן שהדובר מדבר",                 a:"מתורגמן",  lvl:2},
+  {c:"המבנה בחווה שמאחסנים בו תבואה",                     a:"אסם",      lvl:2},
+  {c:"החדר שמתחת לבית, שמאחסנים בו יין",                  a:"מרתף",     lvl:2},
+  {c:"המגדל שמאיר בלילה כדי להזהיר ספינות מהסלעים",        a:"מגדלור",   lvl:2},
+  {c:"המכשיר עם המחט, שמראה תמיד לאן הצפון",              a:"מצפן",     lvl:2},
+  {c:"הרוח החמה והיבשה שמגיעה מהמדבר",                    a:"שרב",      lvl:2},
+  {c:"טיפות המים שמופיעות על העלים לפנות בוקר, בלי גשם",   a:"טל",       lvl:2},
+  {c:"כלי הנגינה עם ארבעה מיתרים, שמנגנים עליו בקשת",     a:"כינור",    lvl:2},
+  {c:"כלי הנשיפה מפליז, עם שלושה בוכנות",                 a:"חצוצרה",   lvl:2},
+
+  /* ---- 3 ---- the body, and things that were everywhere sixty years ago */
+  {c:"החלק בצד הראש, בין העין לאוזן",                     a:"רקה",      lvl:3},
+  {c:"השריר שמפריד בין בית החזה לבטן",                    a:"סרעפת",    lvl:3},
+  {c:"הפרק שמחבר את כף הרגל לשוק",                        a:"קרסול",    lvl:3},
+  {c:"העצם שעוטפת את המוח",                               a:"גולגולת",  lvl:3},
+  {c:"התנור הקטן שבישלו עליו פעם, והפעילו אותו בנפט",      a:"פרימוס",   lvl:3},
+  {c:"הרדיו הקטן והנייד שנשאו איתו לכל מקום",             a:"טרנזיסטור", lvl:3},
+  {c:"המכשיר שהכפילו בו דפים לפני מכונת הצילום",           a:"סטנסיל",   lvl:3},
+  {c:"הכרטיס שהנהג ניקב בו נסיעה באוטובוס",               a:"כרטיסייה", lvl:3},
+  {c:"המכשיר שהקליט קול על סליל סרט",                     a:"רשמקול",   lvl:3},
+  {c:"המכשיר שמודד את לחץ האוויר ומנבא מזג אוויר",         a:"ברומטר",   lvl:3},
+  {c:"האבן היקרה והשקופה, הקשה מכל חומר אחר בטבע",         a:"יהלום",    lvl:3},
+  {c:"הפתח בגג שמוציא את העשן מהתנור",                    a:"ארובה",    lvl:3},
+  {c:"הכלי שמנפים בו קמח כדי להוציא גושים",               a:"נפה",      lvl:3},
+  {c:"הכלי שנופחים בו אוויר כדי להגביר את האש",           a:"מפוח",     lvl:3},
+  {c:"הרצועות שעוברות על הכתפיים ומחזיקות את המכנסיים",    a:"כתפיות",   lvl:3},
+  {c:"המכשיר שהקרין סרט על מסך לבן",                      a:"מקרן",     lvl:3},
+  {c:"כן המתכת שמעמידים עליו נר",                         a:"פמוט",     lvl:3},
+  {c:"הארגז שבו מגדלים דבורים",                           a:"כוורת",    lvl:3}
 ];
+
 var wordItem = null, wordCues = 0;
+
+function wordsAtLevel(l){
+  var pool = WORDS.filter(function(w){ return w.lvl === l; });
+  return pool.length ? pool : WORDS;
+}
+
 function renderWord(){
-wordItem = WORDS[S.wordIndex % WORDS.length];
-wordCues = 0;
-$("puzzle-kind").textContent = "מילים";
-$("puzzle-prompt").textContent = wordItem.c;
-$("mode-word").classList.remove("hidden");
-$("mode-seq").classList.add("hidden");
-$("word-cues").innerHTML = "";
-$("word-answer").classList.add("hidden");
-$("puzzle-feedback").textContent = "";
-$("puzzle-next").classList.add("hidden");
-$("puzzle-undo").classList.add("hidden");
-drawWordActions();
+  var pool = wordsAtLevel(S.wordLevel);
+  wordItem = pool[S.wordIndex % pool.length];
+  wordCues = 0;
+
+  $("puzzle-kind").textContent = "מילים";
+  $("puzzle-prompt").textContent = wordItem.c;
+  $("mode-word").classList.remove("hidden");
+  $("mode-seq").classList.add("hidden");
+  $("word-cues").innerHTML = "";
+  $("word-answer").classList.add("hidden");
+  $("puzzle-feedback").textContent = "";
+  $("puzzle-next").classList.add("hidden");
+  $("puzzle-undo").classList.add("hidden");
+
+  drawWordActions();
 }
+
 function drawWordActions(){
-var box = $("word-actions");
-box.innerHTML = "";
-if(wordCues < 3){
-var hint = document.createElement("button");
-hint.className = "btn btn-quiet";
-hint.textContent = "רמז";
-tap(hint, function(){
-wordCues++;
-var s = document.createElement("span");
-if(wordCues === 1)      s.textContent = "המילה בת " + wordItem.a.length + " אותיות.";
-else if(wordCues === 2) s.textContent = "מתחילה באות " + wordItem.a.charAt(0) + ".";
-else                    s.textContent = "מתחילה ב־" + wordItem.a.slice(0,2) + "…";
-$("word-cues").appendChild(s);
-drawWordActions();
-});
-box.appendChild(hint);
+  var box = $("word-actions");
+  box.innerHTML = "";
+
+  if(wordCues < 3){
+    var hint = document.createElement("button");
+    hint.className = "btn btn-quiet";
+    hint.textContent = "רמז";
+    tap(hint, function(){
+      wordCues++;
+      var s = document.createElement("span");
+      if(wordCues === 1)      s.textContent = "המילה בת " + wordItem.a.length + " אותיות.";
+      else if(wordCues === 2) s.textContent = "מתחילה באות " + wordItem.a.charAt(0) + ".";
+      else                    s.textContent = "מתחילה ב־" + wordItem.a.slice(0,2) + "…";
+      $("word-cues").appendChild(s);
+      drawWordActions();
+    });
+    box.appendChild(hint);
+  }
+
+  var reveal = document.createElement("button");
+  reveal.className = "btn btn-primary";
+  reveal.textContent = "לראות את המילה";
+  tap(reveal, function(){
+    $("word-answer").textContent = wordItem.a;
+    $("word-answer").classList.remove("hidden");
+    box.innerHTML = "";
+
+    var got = document.createElement("button");
+    got.className = "btn btn-primary";
+    got.textContent = "זו הייתה המילה שחיפשתי";
+    tap(got, function(){ scoreWord(true); });
+
+    var no = document.createElement("button");
+    no.className = "btn btn-quiet";
+    no.textContent = "לא הגעתי אליה";
+    tap(no, function(){ scoreWord(false); });
+
+    box.appendChild(got); box.appendChild(no);
+  });
+  box.appendChild(reveal);
 }
-var reveal = document.createElement("button");
-reveal.className = "btn btn-primary";
-reveal.textContent = "לראות את המילה";
-tap(reveal, function(){
-$("word-answer").textContent = wordItem.a;
-$("word-answer").classList.remove("hidden");
-box.innerHTML = "";
-var got = document.createElement("button");
-got.className = "btn btn-primary";
-got.textContent = "זו הייתה המילה שחיפשתי";
-tap(got, function(){ scoreWord(true); });
-var no = document.createElement("button");
-no.className = "btn btn-quiet";
-no.textContent = "לא הגעתי אליה";
-tap(no, function(){ scoreWord(false); });
-box.appendChild(got); box.appendChild(no);
-});
-box.appendChild(reveal);
-}
+
 function scoreWord(ok){
-var fb = $("puzzle-feedback");
-fb.className = "feedback " + (ok ? "good" : "gentle");
-if(ok){
-fb.textContent = wordCues === 0
-? "בלי רמזים בכלל."
-: "יפה — " + (wordCues === 1 ? "עם רמז אחד." : "עם " + wordCues + " רמזים.");
-} else {
-fb.textContent = wordItem.a + ". היא תחזור.";
+  var fb = $("puzzle-feedback");
+  fb.className = "feedback " + (ok ? "good" : "gentle");
+  if(ok){
+    fb.textContent = wordCues === 0
+      ? "בלי רמזים בכלל."
+      : "יפה — " + (wordCues === 1 ? "עם רמז אחד." : "עם " + wordCues + " רמזים.");
+  } else {
+    fb.textContent = wordItem.a + ". היא תחזור.";
+  }
+  $("word-actions").innerHTML = "";
+
+  /* The level moves with him, silently. Two clean solves in a row and the words
+     get harder; a miss, or needing the whole cue ladder, and they get easier. */
+  if(ok && wordCues === 0){
+    S.wordGood++;
+    if(S.wordGood >= 2 && S.wordLevel < 3){ S.wordLevel++; S.wordGood = 0; }
+  } else if(!ok || wordCues >= 3){
+    S.wordGood = 0;
+    if(S.wordLevel > 1) S.wordLevel--;
+  } else {
+    S.wordGood = 0;
+  }
+
+  S.wordIndex++;
+  S.puzzleIndex++;        /* advances the words/sequencing rotation too */
+  S.done.puzzle = true;
+  save();
+  $("puzzle-next").classList.remove("hidden");
 }
-$("word-actions").innerHTML = "";
-S.wordIndex++;
-S.puzzleIndex++;        /* advances the words/sequencing rotation too */
-S.done.puzzle = true;
-save();
-$("puzzle-next").classList.remove("hidden");
+
+function willOfferSeq(){
+  /* Word puzzles (an object, one clear definition) are the default — they are
+     the easier, more reliable exercise. Sequencing (put events in order) asks
+     more of him: several taps, remembering what's already placed, undoing a
+     mistake. So it only shows up as an occasional "advanced" round, once he
+     is already solving level-3 words comfortably. */
+  return (S.wordLevel >= 3) && (S.puzzleIndex % 6 === 5);
 }
+
 function renderPuzzle(){
-if(S.puzzleIndex % 3 !== 2){ renderWord(); return; }
-var items = PUZZLES[S.puzzleIndex % PUZZLES.length].slice();
-puzzleChosen = [];
-$("puzzle-kind").textContent = "סדר";
-$("puzzle-prompt").textContent = "סדר לפי הזמן — מהמוקדם למאוחר.";
-$("mode-word").classList.add("hidden");
-$("mode-seq").classList.remove("hidden");
-var box = $("puzzle-choices");
-box.innerHTML = "";
-$("puzzle-seq").innerHTML = "";
-$("puzzle-feedback").textContent = "";
-$("puzzle-next").classList.add("hidden");
-$("puzzle-undo").classList.add("hidden");
-for(var i = items.length - 1; i > 0; i--){
-var j = Math.floor(Math.random() * (i + 1));
-var t = items[i]; items[i] = items[j]; items[j] = t;
+  if(!willOfferSeq()){ renderWord(); return; }
+
+  var items = PUZZLES[S.puzzleIndex % PUZZLES.length].slice();
+  puzzleChosen = [];
+
+  $("puzzle-kind").textContent = "סדר";
+  $("puzzle-prompt").textContent = "סדר לפי הזמן — מהמוקדם למאוחר.";
+  $("mode-word").classList.add("hidden");
+  $("mode-seq").classList.remove("hidden");
+
+  var box = $("puzzle-choices");
+  box.innerHTML = "";
+  $("puzzle-seq").innerHTML = "";
+  $("puzzle-feedback").textContent = "";
+  $("puzzle-next").classList.add("hidden");
+  $("puzzle-undo").classList.add("hidden");
+
+  for(var i = items.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = items[i]; items[i] = items[j]; items[j] = t;
+  }
+
+  items.forEach(function(ev){
+    var b = document.createElement("button");
+    b.className = "event";
+    b.innerHTML = '<span class="event-title"></span>';
+    b.querySelector(".event-title").textContent = ev.t;
+    tap(b, function(){
+      if(b.disabled) return;
+      b.disabled = true;
+      b.style.display = "none";
+      puzzleChosen.push(ev);
+      drawSeq();
+      $("puzzle-undo").classList.remove("hidden");
+      if(puzzleChosen.length === items.length) checkPuzzle(items);
+    });
+    box.appendChild(b);
+  });
 }
-items.forEach(function(ev){
-var b = document.createElement("button");
-b.className = "event";
-b.innerHTML = '<span class="event-title"></span>';
-b.querySelector(".event-title").textContent = ev.t;
-tap(b, function(){
-if(b.disabled) return;
-b.disabled = true;
-b.style.display = "none";
-puzzleChosen.push(ev);
-drawSeq();
-$("puzzle-undo").classList.remove("hidden");
-if(puzzleChosen.length === items.length) checkPuzzle(items);
-});
-box.appendChild(b);
-});
-}
+
 function drawSeq(marked){
-var ol = $("puzzle-seq");
-ol.innerHTML = "";
-puzzleChosen.forEach(function(ev, i){
-var li = document.createElement("li");
-var n = document.createElement("span");
-n.className = "n"; n.textContent = (i + 1) + ".";
-var t = document.createElement("span");
-t.textContent = ev.t;
-li.appendChild(n); li.appendChild(t);
-if(marked){
-var yr = document.createElement("span");
-yr.className = "yr"; yr.textContent = ev.y;
-li.appendChild(yr);
-li.className = marked[i] ? "ok" : "off";
+  var ol = $("puzzle-seq");
+  ol.innerHTML = "";
+  puzzleChosen.forEach(function(ev, i){
+    var li = document.createElement("li");
+    var n = document.createElement("span");
+    n.className = "n"; n.textContent = (i + 1) + ".";
+    var t = document.createElement("span");
+    t.textContent = ev.t;
+    li.appendChild(n); li.appendChild(t);
+    if(marked){
+      var yr = document.createElement("span");
+      yr.className = "yr"; yr.textContent = ev.y;
+      li.appendChild(yr);
+      li.className = marked[i] ? "ok" : "off";
+    }
+    ol.appendChild(li);
+  });
 }
-ol.appendChild(li);
-});
-}
+
 function checkPuzzle(items){
-var correct = items.slice().sort(function(a,b){ return a.y - b.y; });
-var marked = puzzleChosen.map(function(ev,i){ return ev.y === correct[i].y; });
-var allRight = marked.every(Boolean);
-drawSeq(marked);
-$("puzzle-undo").classList.add("hidden");
-var fb = $("puzzle-feedback");
-if(allRight){
-fb.className = "feedback good";
-fb.textContent = "הכל במקום.";
-} else {
-fb.className = "feedback gentle";
-fb.textContent = "הסדר הנכון: " + correct.map(function(e){ return e.t; }).join(" · ");
+  var correct = items.slice().sort(function(a,b){ return a.y - b.y; });
+  var marked = puzzleChosen.map(function(ev,i){ return ev.y === correct[i].y; });
+  var allRight = marked.every(Boolean);
+
+  drawSeq(marked);
+  $("puzzle-undo").classList.add("hidden");
+
+  var fb = $("puzzle-feedback");
+  if(allRight){
+    fb.className = "feedback good";
+    fb.textContent = "הכל במקום.";
+  } else {
+    fb.className = "feedback gentle";
+    fb.textContent = "הסדר הנכון: " + correct.map(function(e){ return e.t; }).join(" · ");
+  }
+
+  S.puzzleIndex++;
+  S.done.puzzle = true;
+  save();
+  $("puzzle-next").classList.remove("hidden");
 }
-S.puzzleIndex++;
-S.done.puzzle = true;
-save();
-$("puzzle-next").classList.remove("hidden");
-}
+
 tap($("puzzle-undo"), function(){
-if(!puzzleChosen.length) return;
-var ev = puzzleChosen.pop();
-var kids = $("puzzle-choices").querySelectorAll("button");
-for(var i=0;i<kids.length;i++){
-if(kids[i].querySelector(".event-title").textContent === ev.t){
-kids[i].disabled = false;
-kids[i].style.display = "";
-}
-}
-drawSeq();
-if(!puzzleChosen.length) $("puzzle-undo").classList.add("hidden");
+  if(!puzzleChosen.length) return;
+  var ev = puzzleChosen.pop();
+  var kids = $("puzzle-choices").querySelectorAll("button");
+  for(var i=0;i<kids.length;i++){
+    if(kids[i].querySelector(".event-title").textContent === ev.t){
+      kids[i].disabled = false;
+      kids[i].style.display = "";
+    }
+  }
+  drawSeq();
+  if(!puzzleChosen.length) $("puzzle-undo").classList.add("hidden");
 });
+
 tap($("puzzle-next"), function(){ renderPuzzle(); });
+
+/* ---------------------------------------------------------------
+   Family panel
+--------------------------------------------------------------- */
 function shrinkImage(file, cb){
-var reader = new FileReader();
-reader.onload = function(e){
-var img = new Image();
-img.onload = function(){
-var size = 320;
-var c = document.createElement("canvas");
-c.width = size; c.height = size;
-var ctx = c.getContext("2d");
-var scale = Math.max(size/img.width, size/img.height);
-var w = img.width*scale, h = img.height*scale;
-ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
-cb(c.toDataURL("image/jpeg", 0.78));
-};
-img.onerror = function(){ cb(null); };
-img.src = e.target.result;
-};
-reader.onerror = function(){ cb(null); };
-reader.readAsDataURL(file);
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var size = 320;
+      var c = document.createElement("canvas");
+      c.width = size; c.height = size;
+      var ctx = c.getContext("2d");
+      var scale = Math.max(size/img.width, size/img.height);
+      var w = img.width*scale, h = img.height*scale;
+      ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+      cb(c.toDataURL("image/jpeg", 0.78));
+    };
+    img.onerror = function(){ cb(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){ cb(null); };
+  reader.readAsDataURL(file);
 }
+
 function renderFamily(){
-var note = $("today-note");
-note.value = S.todayNote || "";
-note.onchange = function(){ S.todayNote = note.value.trim(); save(); renderHome(); };
-var box = $("people-rows");
-box.innerHTML = "";
-S.people.forEach(function(p, idx){
-var row = document.createElement("div");
-row.className = "row";
-var thumb = document.createElement("div");
-thumb.className = "thumb";
-thumb.innerHTML = portraitFor(p);
-var nameIn = document.createElement("input");
-nameIn.type = "text"; nameIn.value = p.name; nameIn.setAttribute("aria-label","שם");
-nameIn.addEventListener("change", function(){ p.name = nameIn.value.trim() || p.name; save(); });
-var relIn = document.createElement("input");
-relIn.type = "text"; relIn.value = p.relation; relIn.setAttribute("aria-label","קרבה");
-relIn.addEventListener("change", function(){ p.relation = relIn.value.trim(); save(); });
-var stageTag = document.createElement("span");
-stageTag.className = "stage-tag";
-stageTag.textContent = p.stage >= 5 ? "יודע" : ("שלב " + p.stage + "/5");
-var pick = document.createElement("label");
-pick.className = "mini";
-pick.textContent = "תמונה";
-var file = document.createElement("input");
-file.type = "file"; file.accept = "image/*"; file.className = "hidden";
-file.addEventListener("change", function(){
-if(!file.files || !file.files[0]) return;
-shrinkImage(file.files[0], function(dataURL){
-if(!dataURL) return;
-p.photo = dataURL;
-try{ save(); }catch(e){}
-renderFamily();
-});
-});
-pick.appendChild(file);
-var del = document.createElement("button");
-del.className = "mini";
-del.textContent = "הסרה";
-tapFast(del, function(){
-if(S.people.length <= 2) return;
-S.people.splice(idx,1); save(); renderFamily();
-});
-row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
-row.appendChild(stageTag); row.appendChild(pick); row.appendChild(del);
-box.appendChild(row);
-});
-var qbox = $("q-rows");
-qbox.innerHTML = "";
-S.questions.forEach(function(q, idx){
-var row = document.createElement("div");
-row.className = "row";
-var fromIn = document.createElement("input");
-fromIn.type = "text"; fromIn.value = q.from; fromIn.style.maxWidth = "120px"; fromIn.setAttribute("aria-label","מי שואל");
-fromIn.addEventListener("change", function(){ q.from = fromIn.value.trim() || q.from; save(); });
-var txtIn = document.createElement("input");
-txtIn.type = "text"; txtIn.value = q.text; txtIn.setAttribute("aria-label","השאלה");
-txtIn.addEventListener("change", function(){ q.text = txtIn.value.trim() || q.text; save(); });
-var tag = document.createElement("span");
-tag.className = "stage-tag";
-tag.textContent = q.done ? "נענתה" : "ממתינה";
-var del = document.createElement("button");
-del.className = "mini"; del.textContent = "הסרה";
-tapFast(del, function(){ S.questions.splice(idx,1); save(); renderFamily(); });
-row.appendChild(fromIn); row.appendChild(txtIn); row.appendChild(tag); row.appendChild(del);
-qbox.appendChild(row);
-});
+  var note = $("today-note");
+  note.value = S.todayNote || "";
+  note.onchange = function(){ S.todayNote = note.value.trim(); save(); renderHome(); };
+
+  var occBox = $("occ-rows");
+  occBox.innerHTML = "";
+
+  (S.occasions || []).forEach(function(o, idx){
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var dateIn = document.createElement("input");
+    dateIn.type = "text"; dateIn.value = o.date || "";
+    dateIn.placeholder = "28/08";
+    dateIn.style.maxWidth = "110px";
+    dateIn.setAttribute("aria-label", "תאריך");
+    dateIn.addEventListener("change", function(){ o.date = dateIn.value.trim(); save(); renderHome(); });
+
+    var textIn = document.createElement("input");
+    textIn.type = "text"; textIn.value = o.text || "";
+    textIn.placeholder = "יום ההולדת של שירה";
+    textIn.setAttribute("aria-label", "מה קורה בתאריך הזה");
+    textIn.addEventListener("change", function(){ o.text = textIn.value.trim(); save(); renderHome(); });
+
+    var del = document.createElement("button");
+    del.className = "mini"; del.textContent = "הסרה";
+    tapFast(del, function(){ S.occasions.splice(idx, 1); save(); renderFamily(); renderHome(); });
+
+    row.appendChild(dateIn); row.appendChild(textIn); row.appendChild(del);
+    occBox.appendChild(row);
+  });
+
+  var box = $("people-rows");
+  box.innerHTML = "";
+
+  S.people.forEach(function(p, idx){
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var thumb = document.createElement("div");
+    thumb.className = "thumb";
+    thumb.innerHTML = portraitFor(p);
+
+    var nameIn = document.createElement("input");
+    nameIn.type = "text"; nameIn.value = p.name; nameIn.setAttribute("aria-label","שם");
+    nameIn.addEventListener("change", function(){ p.name = nameIn.value.trim() || p.name; save(); });
+
+    var relIn = document.createElement("input");
+    relIn.type = "text"; relIn.value = p.relation; relIn.setAttribute("aria-label","קרבה");
+    relIn.addEventListener("change", function(){ p.relation = relIn.value.trim(); save(); });
+
+    var stageTag = document.createElement("span");
+    stageTag.className = "stage-tag";
+    stageTag.textContent = p.stage >= 5 ? "יודע" : ("שלב " + p.stage + "/5");
+
+    var pick = document.createElement("label");
+    pick.className = "mini";
+    pick.textContent = "תמונה";
+    var file = document.createElement("input");
+    file.type = "file"; file.accept = "image/*"; file.className = "hidden";
+    file.addEventListener("change", function(){
+      if(!file.files || !file.files[0]) return;
+      shrinkImage(file.files[0], function(dataURL){
+        if(!dataURL) return;
+        p.photo = dataURL;
+        try{ save(); }catch(e){}
+        renderFamily();
+      });
+    });
+    pick.appendChild(file);
+
+    var del = document.createElement("button");
+    del.className = "mini";
+    del.textContent = "הסרה";
+    tapFast(del, function(){
+      if(S.people.length <= 2) return;
+      S.people.splice(idx,1); save(); renderFamily();
+    });
+
+    row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
+    row.appendChild(stageTag); row.appendChild(pick); row.appendChild(del);
+    box.appendChild(row);
+  });
+
+  var qbox = $("q-rows");
+  qbox.innerHTML = "";
+  S.questions.forEach(function(q, idx){
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var fromIn = document.createElement("input");
+    fromIn.type = "text"; fromIn.value = q.from; fromIn.style.maxWidth = "120px"; fromIn.setAttribute("aria-label","מי שואל");
+    fromIn.addEventListener("change", function(){ q.from = fromIn.value.trim() || q.from; save(); });
+
+    var txtIn = document.createElement("input");
+    txtIn.type = "text"; txtIn.value = q.text; txtIn.setAttribute("aria-label","השאלה");
+    txtIn.addEventListener("change", function(){ q.text = txtIn.value.trim() || q.text; save(); });
+
+    var tag = document.createElement("span");
+    tag.className = "stage-tag";
+    tag.textContent = q.done ? "נענתה" : "ממתינה";
+
+    var del = document.createElement("button");
+    del.className = "mini"; del.textContent = "הסרה";
+    tapFast(del, function(){ S.questions.splice(idx,1); save(); renderFamily(); });
+
+    row.appendChild(fromIn); row.appendChild(txtIn); row.appendChild(tag); row.appendChild(del);
+    qbox.appendChild(row);
+  });
 }
+
+tapFast($("add-occ"), function(){
+  S.occasions.push({date:"", text:""});
+  save(); renderFamily();
+});
+
 tapFast($("add-person"), function(){
-S.people.push({
-id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
-av:S.people.length % AVATARS.length, photo:null, stage:0, due:0, misses:0, reps:0
+  S.people.push({
+    id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
+    av:S.people.length % AVATARS.length, photo:null, stage:0, due:0, misses:0, reps:0
+  });
+  save(); renderFamily();
 });
-save(); renderFamily();
-});
+
 tapFast($("add-question"), function(){
-S.questions.push({id:"q" + Date.now(), from:"דנה", text:"שאלה חדשה", done:false});
-save(); renderFamily();
+  S.questions.push({id:"q" + Date.now(), from:"דנה", text:"שאלה חדשה", done:false});
+  save(); renderFamily();
 });
+
 tapFast($("cal-up"), function(){
-S.zoom = Math.min(2, Math.round((S.zoom + 0.05) * 100) / 100);
-save(); applyZoom();
+  S.zoom = Math.min(2, Math.round((S.zoom + 0.05) * 100) / 100);
+  save(); applyZoom();
 });
 tapFast($("cal-down"), function(){
-S.zoom = Math.max(0.7, Math.round((S.zoom - 0.05) * 100) / 100);
-save(); applyZoom();
+  S.zoom = Math.max(0.7, Math.round((S.zoom - 0.05) * 100) / 100);
+  save(); applyZoom();
 });
+
 tapFast($("reset-all"), function(){
-var keepZoom = S.zoom;          /* calibration is about the device, not the progress */
-S = defaults();
-S.zoom = keepZoom;
-S.day = todayKey;
-save(); applyZoom(); renderFamily(); renderHome();
+  var keepZoom = S.zoom;          /* calibration is about the device, not the progress */
+  S = defaults();
+  S.zoom = keepZoom;
+  S.day = todayKey;
+  save(); applyZoom(); renderFamily(); renderHome();
 });
+
 tap($("open-family"), function(){ renderFamily(); show("s-family"); });
+
+/* ---------------------------------------------------------------
+   Wire the three cards
+--------------------------------------------------------------- */
+/* One handler per card: render, then show. Two listeners on one button meant the
+   debounce ate the second, and the screen opened empty. */
 tap($("card-faces"),    function(){ renderFaces();    show("s-faces");    });
 tap($("card-question"), function(){ renderQuestion(); show("s-question"); });
 tap($("card-puzzle"),   function(){ renderPuzzle();   show("s-puzzle");   });
+
 applyZoom();
 renderHome();
+fit();
 })();
 if("serviceWorker" in navigator){
 navigator.serviceWorker.register("sw.js").catch(function(){});
 }</script>
+
 </body>
 </html>
