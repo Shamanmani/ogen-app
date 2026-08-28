@@ -628,7 +628,7 @@ fn(ev);
 }
 function tapFast(el, fn){ tap(el, fn, 120); }
 function $(id){ return document.getElementById(id); }
-function show(id){
+function show(id){ stopPlayback();
 var all = document.querySelectorAll(".screen");
 for(var i=0;i<all.length;i++) all[i].classList.remove("active");
 $(id).classList.add("active");
@@ -887,11 +887,11 @@ p.stage = Math.max(p.stage - 1, 2);
 save();
 facesDone(actions);
 }
-var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0;
+var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0, player = null;  function stopPlayback(){ if(player){ player.pause(); try{ player.currentTime = 0; }catch(e){} } var b = $("q-play"); if(b) b.textContent = "▶ להאזין שוב"; }
 function renderQuestion(){
 var q = currentQuestion();
 $("q-feedback").textContent = "";
-$("q-play").classList.add("hidden");
+stopPlayback(); $("q-play").classList.add("hidden");
 $("q-send").classList.add("hidden");
 $("q-after").innerHTML = "";
 $("rec-label").textContent = "ספר לי";
@@ -916,7 +916,7 @@ if(mediaRec && mediaRec.state === "recording") mediaRec.stop();
 clearInterval(recTimer);
 }
 tap($("rec-btn"), function(){
-if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
+stopPlayback(); if(mediaRec && mediaRec.state === "recording"){ stopRec(); return; }
 if(!navigator.mediaDevices || !window.MediaRecorder){
 $("q-feedback").className = "feedback gentle";
 $("q-feedback").textContent = "אין כאן מיקרופון, אבל ההקלטה תעבוד על הטאבלט.";
@@ -929,7 +929,7 @@ mediaRec = new MediaRecorder(stream);
 mediaRec.ondataavailable = function(e){ if(e.data.size) chunks.push(e.data); };
 mediaRec.onstop = function(){
 stream.getTracks().forEach(function(t){ t.stop(); });
-if(recURL) URL.revokeObjectURL(recURL);
+if(recURL) URL.revokeObjectURL(recURL); player = null;
 recURL = URL.createObjectURL(new Blob(chunks, {type:"audio/webm"}));
 $("rec-btn").classList.remove("recording");
 $("rec-label").textContent = "להקליט שוב";
@@ -953,7 +953,7 @@ $("q-send").classList.remove("hidden");
 });
 tap($("q-play"), function(){
 if(!recURL) return;
-new Audio(recURL).play().catch(function(){});
+if(player && !player.paused){ stopPlayback(); return; } if(!player){ player = new Audio(recURL); player.addEventListener("ended", stopPlayback); } try{ player.currentTime = 0; }catch(e){} $("q-play").textContent = "■ להפסיק"; player.play().catch(function(){ stopPlayback(); });
 });
 tap($("q-send"), function(){
 var q = currentQuestion();
@@ -964,7 +964,7 @@ var fb = $("q-feedback");
 fb.className = "feedback good";
 fb.textContent = "נשלח" + (q ? " ל" + q.from : "") + ".";
 $("rec-btn").classList.add("hidden");
-$("q-play").classList.add("hidden");
+stopPlayback(); $("q-play").classList.add("hidden");
 $("q-send").classList.add("hidden");
 var box = $("q-after");
 box.innerHTML = "";
