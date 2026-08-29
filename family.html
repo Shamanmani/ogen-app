@@ -117,6 +117,10 @@ button.quiet:active{transform:translateY(1px)}
 .photo-row{display:flex;gap:10px;margin-bottom:6px}
 .photo-row button.quiet{width:auto;flex:1;margin-top:0}
 
+.gender-row{display:flex;gap:10px;margin-bottom:16px}
+.gender-row button.quiet{width:auto;flex:1;margin-top:0}
+.gender-row button.selected{background:var(--moss-wash);border-color:var(--moss);color:var(--moss)}
+
 .msg{font-size:15px;margin-top:12px;text-align:center}
 .msg.err{color:var(--pom)}
 .msg.ok{color:var(--moss)}
@@ -163,6 +167,11 @@ audio{width:100%;margin-top:6px}
     <p class="sub" style="margin-bottom:16px">פעם אחת בלבד — כדי שסבא יזהה אותך גם במשחק "אנשים לזהות" בטאבלט שלו. אפשר גם לדלג על זה.</p>
     <label for="ob-name">השם שלך</label>
     <input type="text" id="ob-name" placeholder="למשל: דנה" autocomplete="name">
+    <label>בן או בת</label>
+    <div class="gender-row">
+      <button type="button" class="quiet" id="ob-gender-m">בן</button>
+      <button type="button" class="quiet" id="ob-gender-f">בת</button>
+    </div>
     <label>תמונה שלך</label>
     <div class="photo-row">
       <button type="button" class="quiet" id="ob-photo-camera-btn">לצלם עכשיו</button>
@@ -294,6 +303,15 @@ function tap(el, fn){
     reader.readAsDataURL(file);
   }
 
+  /* בן/בת - כדי שהטאבלט ינסח נכון "שאל" או "שאלה". אופציונלי, כמו התמונה. */
+  var selectedGender = null;
+  function setGenderUI(){
+    $("ob-gender-m").classList.toggle("selected", selectedGender === "m");
+    $("ob-gender-f").classList.toggle("selected", selectedGender === "f");
+  }
+  tap($("ob-gender-m"), function(){ selectedGender = "m"; setGenderUI(); });
+  tap($("ob-gender-f"), function(){ selectedGender = "f"; setGenderUI(); });
+
   /* שני כפתורים, שני קלטים נסתרים, אבל תמונה אחת נבחרת - זו שנגעו בה אחרונה. */
   var selectedPhoto = null;
   function setPhotoStatus(text){
@@ -323,12 +341,13 @@ function tap(el, fn){
     setObMsg("שומר…");
 
     function insertPerson(photoUrl){
-      sb.from("people").insert({name:name, photo_url:photoUrl || null})
+      sb.from("people").insert({name:name, photo_url:photoUrl || null, gender:selectedGender || null})
         .then(function(res){
           if(res.error) throw res.error;
           try{
             localStorage.setItem("ogen.family.onboarded", "1");
             localStorage.setItem("ogen.family.name", name);
+            if(selectedGender) localStorage.setItem("ogen.family.gender", selectedGender);
           }catch(e){}
           card.hidden = true;
         })
@@ -511,8 +530,12 @@ tap($("send-btn"), function(){
         $("send-btn").disabled = false;
         return null;
       }
-      try{ localStorage.setItem("ogen.family.name", name); }catch(e){}
-      return sb.from("questions").insert({from_name:name, question:text});
+      var g = null;
+      try{
+        localStorage.setItem("ogen.family.name", name);
+        g = localStorage.getItem("ogen.family.gender") || null;
+      }catch(e){}
+      return sb.from("questions").insert({from_name:name, question:text, gender:g});
     })
     .then(function(res){
       if(!res) return;

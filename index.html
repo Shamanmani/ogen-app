@@ -901,6 +901,21 @@ function currentQuestion(){
 }
 
 /*
+   ניסוח נכון של "שאל/שאלה" לפי המין שהמשפחה סימנה (אופציונלי בדף שלהם).
+   כשלא ידוע - ניסוח בלי פועל בכלל, כדי לא לנחש טעות.
+*/
+function askedHeadline(q){
+  if(q.gender === "m") return q.from_name + " שאל אותך משהו";
+  if(q.gender === "f") return q.from_name + " שאלה אותך משהו";
+  return "יש לך שאלה חדשה מ" + q.from_name;
+}
+function askedNextPrompt(q){
+  if(q.gender === "m") return q.from_name + " שאל אותך משהו — לענות גם לו?";
+  if(q.gender === "f") return q.from_name + " שאלה אותך משהו — לענות גם לה?";
+  return "יש עוד שאלה מ" + q.from_name + " — לענות גם עליה?";
+}
+
+/*
    טוען את השאלות הממתינות מסופאבייס, ומסדר אותן בהוגנות: מי שאבא ענה לו
    הכי מעט עד עכשיו נכנס ראשון לתור, לא סתם מי ששאל קודם.
 */
@@ -1123,7 +1138,7 @@ function renderHome(){
   $("note-faces").textContent = p ? (p.name + ", " + p.relation) : "אין מה לחזור היום";
 
   var q = currentQuestion();
-  $("note-question").textContent = q ? (q.from_name + " שאלה אותך משהו")
+  $("note-question").textContent = q ? askedHeadline(q)
     : (familyQueueError ? "אין חיבור לאינטרנט כרגע" : "אין שאלה חדשה כרגע");
 
   $("note-puzzle").textContent = willOfferSeq()
@@ -1512,7 +1527,7 @@ tap($("q-send"), function(){
       if(next){
         var more = document.createElement("button");
         more.className = "btn btn-quiet";
-        more.textContent = next.from_name + " שאל אותך משהו — לענות גם לו?";
+        more.textContent = askedNextPrompt(next);
         tap(more, function(){ renderQuestion(); });
         box.appendChild(more);
       }
