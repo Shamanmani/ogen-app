@@ -498,10 +498,25 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
 }
 .row input[type=text].fact-input{flex-basis:100%}
 .row .stage-tag{font-size:15px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+.row select.diff-select{
+  font-family:inherit;font-size:15px;font-weight:600;padding:10px 10px;min-height:44px;
+  border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
+}
 .mini{
   font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
   border:2px solid var(--rule);border-radius:3px;background:var(--raised);white-space:nowrap;
 }
+.stats-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.stats-tile{
+  flex:1 1 150px;background:var(--raised);border:2px solid var(--rule);border-radius:3px;
+  padding:14px 16px;text-align:center;
+}
+.stats-num{font-size:28px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.stats-label{font-size:14px;color:var(--ink-soft);margin-top:4px;line-height:1.4}
+.stats-empty{color:var(--ink-soft);font-size:16px;padding:6px 0 14px}
+.stats-days{width:100%;border-collapse:collapse;margin-top:4px}
+.stats-days th,.stats-days td{padding:9px 6px;text-align:right;border-bottom:1px solid var(--rule);font-size:15px;font-variant-numeric:tabular-nums}
+.stats-days th{color:var(--ink-soft);font-weight:600;font-size:13px}
 .ruler{
   width:94.5px;height:94.5px;      /* 25mm at the CSS spec's 96px/inch */
   flex:none;
@@ -657,9 +672,14 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-occ">+ להוסיף תאריך</button></div>
 
     <h2 class="panel-h">האנשים</h2>
-    <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה.</p>
+    <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה. לכל אדם אפשר גם לבחור דרגת קושי בנפרד: קל עם ברירות לבחירה, רגיל, או קשה בלי שום רמז.</p>
     <div id="people-rows"></div>
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-person">+ להוסיף אדם</button></div>
+
+    <h2 class="panel-h">סיכום תשובות</h2>
+    <p class="panel-note">כדי לעקוב לאורך זמן, לא לפי יום בודד — יום אחד עם תשובה אחת לא אומר הרבה. "ידעתי, לא יצא לי" נספר כהצלחה, כי הזיכרון היה שם ורק המילה התעכבה. הטבלה מציגה אחוזים רק כשיש באותו יום לפחות 3 תשובות; בפחות מזה, שיש בו יותר משמעות למספר עצמו, מוצג המספר בלבד.</p>
+    <div id="stats-summary" class="stats-summary"></div>
+    <div id="stats-days-wrap"></div>
 
     <h2 class="panel-h">השאלות</h2>
     <p class="panel-note">השאלות מגיעות עכשיו ישירות מבני המשפחה, דרך קישור משותף אחד ששולחים להם. אבא רואה אותן ועונה בקול מתוך מסך "שאלה" בעצמו — אין יותר צורך להקליד אותן כאן.</p>
@@ -716,10 +736,10 @@ var AVATARS = [
 function defaults(){
   return {
     people:[
-      {id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:2, due:0, misses:0, reps:0},
-      {id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:2, due:0, misses:0, reps:0},
-      {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:2, due:0, misses:0, reps:0},
-      {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:2, due:0, misses:0, reps:0}
+      {id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:2, due:0, misses:0, reps:0, difficulty:"normal"},
+      {id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:2, due:0, misses:0, reps:0, difficulty:"normal"},
+      {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:2, due:0, misses:0, reps:0, difficulty:"normal"},
+      {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:2, due:0, misses:0, reps:0, difficulty:"normal"}
     ],
     puzzleIndex:0,
     wordIndex:0,
@@ -729,7 +749,8 @@ function defaults(){
     todayNote:"ליאת מגיעה בעשר. דנה מתקשרת בערב.",
     zoom:1,
     day:"",
-    done:{faces:false, question:false, puzzle:false}
+    done:{faces:false, question:false, puzzle:false},
+    faceLog:[]
   };
 }
 
@@ -743,6 +764,7 @@ if(!S || !S.people || !S.people.length) S = defaults();
 S.people.forEach(function(p){
   if(typeof p.misses !== "number") p.misses = 0;
   if(typeof p.reps   !== "number") p.reps   = 0;
+  if(typeof p.difficulty !== "string") p.difficulty = "normal";
 });
 if(typeof S.zoom !== "number" || !(S.zoom > 0)) S.zoom = 1;
 if(typeof S.wordIndex !== "number") S.wordIndex = 0;
@@ -751,6 +773,7 @@ if(typeof S.wordGood  !== "number") S.wordGood  = 0;
 if(!Array.isArray(S.occasions))     S.occasions = [];
 if(typeof S.todayNote !== "string") S.todayNote = "";
 if(!Array.isArray(S.importedPeopleIds)) S.importedPeopleIds = [];
+if(!Array.isArray(S.faceLog))       S.faceLog = [];
 
 function applyZoom(){
   document.documentElement.style.setProperty("--zoom", String(S.zoom));
@@ -981,7 +1004,7 @@ function syncPeopleFromFamily(){
           av: S.people.length % AVATARS.length,
           photo: row.photo_url || null,
           /* שלב 2 (שאלה בלי רמז), לא שלב היכרות - הוא כבר מכיר את בני המשפחה. */
-          stage:2, due:0, misses:0, reps:0
+          stage:2, due:0, misses:0, reps:0, difficulty:"normal"
         });
         S.importedPeopleIds.push(row.id);
         added = true;
@@ -1207,6 +1230,8 @@ function renderFaces(){
   var p = facesPerson;
   if(!p) return;
 
+  var difficulty = p.difficulty || "normal";
+
   $("faces-stage").textContent = STAGE_LABEL[Math.min(p.stage,5)];
   $("faces-portrait").innerHTML = portraitFor(p);
   $("faces-feedback").textContent = "";
@@ -1244,8 +1269,27 @@ function renderFaces(){
     return;
   }
 
+  /*
+    דרגת קושי "קל" - תמיד עם ברירות לבחירה, בלי קשר לשלב או למספר הטעויות.
+    זו התמיכה הגבוהה ביותר, ומחליפה את שני הבדיקות הבאות (רמז אחרי טעויות,
+    ובדיקת שלב 3) - שתיהן כבר כלולות בבחירה מתוך רשימה.
+  */
+  if(difficulty === "easy"){
+    nameEl.textContent = "מי זה?";
+    relEl.textContent  = p.relation;
+    factEl.textContent = "";
+    renderChoices(p, 4, actions);
+    return;
+  }
+
+  /*
+    דרגת קושי "קשה" - שליפה חופשית תמיד, בלי שום רמז, גם אחרי טעויות חוזרות
+    וגם בשלב שבדרך כלל היה נותן ברירות. לכן שתי הבדיקות הבאות מדלגות על
+    "קשה" ועוברות ישר לשליפה החופשית בסוף הפונקציה.
+  */
+
   /* Struggled twice on this face — give one supported pass, then back to normal. */
-  if(p.misses >= 2){
+  if(difficulty !== "hard" && p.misses >= 2){
     nameEl.textContent = "מי זה?";
     relEl.textContent  = p.relation;
     factEl.textContent = "";
@@ -1256,7 +1300,7 @@ function renderFaces(){
   }
 
   /* Stage 3 — recognition, as an objective check on the self-scored rounds. */
-  if(p.stage === 3){
+  if(difficulty !== "hard" && p.stage === 3){
     nameEl.textContent = "מי זה?";
     relEl.textContent  = p.relation;
     factEl.textContent = "";
@@ -1327,6 +1371,26 @@ function renderChoices(p, count, actions){
   });
 }
 
+/*
+   רושם כל תוצאה עם תאריך, כדי שיהיה אפשר לראות מגמה לאורך זמן במסך
+   ההגדרות - לא רק את המצב הנוכחי של כל אדם. נשמר בנפרד מ-stage/misses/reps
+   שמשמשים את תזמון החזרות; זה עוד "יומן" קריאה בלבד, לא משפיע על המשחק.
+*/
+function logFaceResult(p, result){
+  var d = new Date();
+  var pad = function(n){ return n < 10 ? "0" + n : "" + n; };
+  var dateKey = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  S.faceLog.push({
+    date: dateKey,
+    personId: p.id,
+    personName: p.name,
+    result: result,
+    difficulty: p.difficulty || "normal"
+  });
+  /* תקרה כדי שהיומן לא יגדל בלי סוף על פני שנות שימוש. */
+  if(S.faceLog.length > 3000) S.faceLog.splice(0, S.faceLog.length - 3000);
+}
+
 function scoreFace(ok, actions){
   var p = facesPerson;
   var fb = $("faces-feedback");
@@ -1335,6 +1399,7 @@ function scoreFace(ok, actions){
   /* Tip of the tongue: the memory held, the word was slow. Keep the stage,
      shorten the interval a little, and say so plainly. */
   if(ok === "tot"){
+    logFaceResult(p, "tot");
     p.misses = 0;
     fb.className = "feedback good";
     fb.textContent = "זה קורה. הזיכרון היה שם.";
@@ -1347,6 +1412,7 @@ function scoreFace(ok, actions){
   }
 
   if(ok){
+    logFaceResult(p, "ok");
     p.misses = 0;
     fb.className = "feedback good";
     if(p.stage >= 5){
@@ -1365,6 +1431,7 @@ function scoreFace(ok, actions){
       }
     }
   } else {
+    logFaceResult(p, "miss");
     p.misses++;
     fb.className = "feedback gentle";
     fb.textContent = "זה " + p.name + ". נחזור אליו עוד מעט.";
@@ -1894,6 +1961,109 @@ function shrinkImage(file, cb){
   reader.readAsDataURL(file);
 }
 
+/*
+  סיכום תשובות בזיהוי פנים, לצורך מעקב לאורך זמן.
+
+  אחוז יומי בודד מטעה: אם היתה תשובה אחת ביום, האחוז הוא 0% או 100%, בלי
+  שום משמעות. הפתרון: חלון נגלל של 7 ימים ו-30 יום (הרבה יותר תשובות, אז
+  האחוז כבר אומר משהו), ולצידו טבלה יומית שבה מוצג אחוז רק כשיש באותו יום
+  לפחות 3 תשובות - אחרת מוצג המספר הגולמי (למשל "1/1") במקום אחוז מטעה.
+
+  "הצלחה" = "ok" (ידע מיד) או "tot" (ידע, המילה התעכבה) ביחד - בהתאם
+  לעיקרון של האפליקציה שהוזכר למעלה: שם שמתעכב הוא לא שם שאבד.
+*/
+function computeFaceStats(){
+  var pad = function(n){ return n < 10 ? "0" + n : "" + n; };
+  function dateKeyFor(offsetDays){
+    var d = new Date(Date.now() - offsetDays * 86400000);
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  var DAYS_SHOWN = 21;
+  var days = [];
+  var byDate = {};
+  for(var i = 0; i < DAYS_SHOWN; i++){
+    var key = dateKeyFor(i);
+    var bucket = { date: key, total: 0, success: 0 };
+    days.push(bucket);
+    byDate[key] = bucket;
+  }
+  function isSuccess(entry){ return entry.result === "ok" || entry.result === "tot"; }
+  (S.faceLog || []).forEach(function(entry){
+    var bucket = byDate[entry.date];
+    if(bucket){
+      bucket.total++;
+      if(isSuccess(entry)) bucket.success++;
+    }
+  });
+  function windowStats(nDays){
+    var cutoff = dateKeyFor(nDays - 1);
+    var total = 0, success = 0;
+    (S.faceLog || []).forEach(function(entry){
+      if(entry.date >= cutoff){
+        total++;
+        if(isSuccess(entry)) success++;
+      }
+    });
+    return { total: total, success: success };
+  }
+  return { days: days, week: windowStats(7), month: windowStats(30) };
+}
+
+function renderStats(){
+  var summary = $("stats-summary");
+  var wrap = $("stats-days-wrap");
+  if(!summary || !wrap) return;
+
+  var stats = computeFaceStats();
+
+  function pct(success, total){
+    return total > 0 ? Math.round((success / total) * 100) + "%" : "—";
+  }
+  function tile(label, w){
+    var t = document.createElement("div");
+    t.className = "stats-tile";
+    var num = document.createElement("div");
+    num.className = "stats-num";
+    num.textContent = w.total > 0 ? (pct(w.success, w.total) + " (" + w.success + "/" + w.total + ")") : "אין עדיין תשובות";
+    var lbl = document.createElement("div");
+    lbl.className = "stats-label";
+    lbl.textContent = label;
+    t.appendChild(num); t.appendChild(lbl);
+    return t;
+  }
+
+  summary.innerHTML = "";
+  summary.appendChild(tile("ב-7 הימים האחרונים", stats.week));
+  summary.appendChild(tile("ב-30 הימים האחרונים", stats.month));
+
+  wrap.innerHTML = "";
+  var daysWithData = stats.days.filter(function(d){ return d.total > 0; });
+  if(daysWithData.length === 0){
+    var empty = document.createElement("p");
+    empty.className = "stats-empty";
+    empty.textContent = "עוד אין תשובות רשומות. הסיכום יתמלא ככל שאבא יענה על שאלות \"מי זה\".";
+    wrap.appendChild(empty);
+    return;
+  }
+
+  var table = document.createElement("table");
+  table.className = "stats-days";
+  var thead = document.createElement("thead");
+  thead.innerHTML = "<tr><th>תאריך</th><th>תשובות</th><th>הצלחה</th></tr>";
+  table.appendChild(thead);
+  var tbody = document.createElement("tbody");
+  daysWithData.forEach(function(d){
+    var tr = document.createElement("tr");
+    var dParts = d.date.split("-");
+    var shown = dParts[2] + "/" + dParts[1];
+    var cellPct = d.total >= 3 ? pct(d.success, d.total) : (d.success + "/" + d.total);
+    tr.innerHTML = "<td>" + shown + "</td><td>" + d.total + "</td><td>" + cellPct + "</td>";
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+}
+
 function renderFamily(){
   var note = $("today-note");
   note.value = S.todayNote || "";
@@ -1961,6 +2131,22 @@ function renderFamily(){
     stageTag.className = "stage-tag";
     stageTag.textContent = p.stage >= 5 ? "יודע" : ("שלב " + p.stage + "/5");
 
+    /*
+      דרגת קושי למשחק "מי זה" - נשמרת לכל אדם בנפרד. "קל" תמיד עם ברירות
+      לבחירה, "רגיל" ההתנהגות המקורית (רמז נתמך אחרי שתי טעויות, ובדיקה
+      עם ברירות בשלב 3), "קשה" תמיד שליפה חופשית בלי שום רמז.
+    */
+    var diffSel = document.createElement("select");
+    diffSel.className = "diff-select";
+    diffSel.setAttribute("aria-label", "דרגת קושי");
+    [["easy","קל - עם ברירות"], ["normal","רגיל"], ["hard","קשה - בלי רמז"]].forEach(function(opt){
+      var o = document.createElement("option");
+      o.value = opt[0]; o.textContent = opt[1];
+      if((p.difficulty || "normal") === opt[0]) o.selected = true;
+      diffSel.appendChild(o);
+    });
+    diffSel.addEventListener("change", function(){ p.difficulty = diffSel.value; save(); });
+
     var pick = document.createElement("label");
     pick.className = "mini";
     pick.textContent = "תמונה";
@@ -1986,7 +2172,7 @@ function renderFamily(){
     });
 
     row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
-    row.appendChild(stageTag); row.appendChild(factIn);
+    row.appendChild(stageTag); row.appendChild(diffSel); row.appendChild(factIn);
 
     /*
       מי שכבר בשלב 0/1 (טרם עבר היכרות) יראה על הטאבלט קודם את השם עצמו,
@@ -2006,6 +2192,7 @@ function renderFamily(){
     box.appendChild(row);
   });
 
+  renderStats();
 }
 
 tapFast($("add-occ"), function(){
@@ -2021,7 +2208,7 @@ tapFast($("add-person"), function(){
   */
   S.people.push({
     id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
-    av:S.people.length % AVATARS.length, photo:null, stage:2, due:0, misses:0, reps:0
+    av:S.people.length % AVATARS.length, photo:null, stage:2, due:0, misses:0, reps:0, difficulty:"normal"
   });
   save(); renderFamily();
 });
