@@ -716,10 +716,10 @@ var AVATARS = [
 function defaults(){
   return {
     people:[
-      {id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:0, due:0, misses:0, reps:0},
-      {id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:0, due:0, misses:0, reps:0},
-      {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:0, due:0, misses:0, reps:0},
-      {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:0, due:0, misses:0, reps:0}
+      {id:"p1", name:"שירה",  relation:"הנינה שלך",  fact:"בת ארבע. מציירת סוסים בלי הפסקה.", av:0, photo:null, stage:2, due:0, misses:0, reps:0},
+      {id:"p2", name:"אורי",  relation:"בן של דנה",  fact:"סיים טירונות בחודש שעבר.",          av:3, photo:null, stage:2, due:0, misses:0, reps:0},
+      {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:2, due:0, misses:0, reps:0},
+      {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:2, due:0, misses:0, reps:0}
     ],
     puzzleIndex:0,
     wordIndex:0,
@@ -980,7 +980,8 @@ function syncPeopleFromFamily(){
           fact: "",
           av: S.people.length % AVATARS.length,
           photo: row.photo_url || null,
-          stage:0, due:0, misses:0, reps:0
+          /* שלב 2 (שאלה בלי רמז), לא שלב היכרות - הוא כבר מכיר את בני המשפחה. */
+          stage:2, due:0, misses:0, reps:0
         });
         S.importedPeopleIds.push(row.id);
         added = true;
@@ -2013,9 +2014,14 @@ tapFast($("add-occ"), function(){
 });
 
 tapFast($("add-person"), function(){
+  /*
+    מתחילים ישר בשלב 2 (שאלה בלי רמז) ולא בשלב ההיכרות - כך הוא מתאים
+    כרגע, כשאבא במצב טוב. אפשר תמיד "להוריד" אדם ידנית אם צריך יותר תמיכה,
+    ובעתיד אולי יהיה כאן כפתור לבחור את רמת הקושי לכל אדם בנפרד.
+  */
   S.people.push({
     id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
-    av:S.people.length % AVATARS.length, photo:null, stage:0, due:0, misses:0, reps:0
+    av:S.people.length % AVATARS.length, photo:null, stage:2, due:0, misses:0, reps:0
   });
   save(); renderFamily();
 });
