@@ -114,6 +114,9 @@ button.quiet{
 button.quiet:disabled{opacity:.5;cursor:default}
 button.quiet:active{transform:translateY(1px)}
 
+.photo-row{display:flex;gap:10px;margin-bottom:6px}
+.photo-row button.quiet{width:auto;flex:1;margin-top:0}
+
 .msg{font-size:15px;margin-top:12px;text-align:center}
 .msg.err{color:var(--pom)}
 .msg.ok{color:var(--moss)}
@@ -158,8 +161,14 @@ audio{width:100%;margin-top:6px}
     <p class="sub" style="margin-bottom:16px">פעם אחת בלבד — כדי שאבא יזהה אותך גם במשחק "אנשים לזהות" בטאבלט שלו. אפשר גם לדלג על זה.</p>
     <label for="ob-name">השם שלך</label>
     <input type="text" id="ob-name" placeholder="למשל: דנה" autocomplete="name">
-    <label for="ob-photo">תמונה שלך</label>
-    <input type="file" id="ob-photo" accept="image/*">
+    <label>תמונה שלך</label>
+    <div class="photo-row">
+      <button type="button" class="quiet" id="ob-photo-camera-btn">לצלם עכשיו</button>
+      <button type="button" class="quiet" id="ob-photo-gallery-btn">לבחור מהגלריה</button>
+    </div>
+    <input type="file" id="ob-photo-camera" accept="image/*" capture="user" hidden>
+    <input type="file" id="ob-photo-gallery" accept="image/*" hidden>
+    <p class="msg ok" id="ob-photo-status"></p>
     <button class="primary" id="ob-save">שמור</button>
     <button class="quiet" id="ob-skip" type="button">לדלג על זה</button>
     <p class="msg" id="ob-msg"></p>
@@ -283,6 +292,21 @@ function tap(el, fn){
     reader.readAsDataURL(file);
   }
 
+  /* שני כפתורים, שני קלטים נסתרים, אבל תמונה אחת נבחרת - זו שנגעו בה אחרונה. */
+  var selectedPhoto = null;
+  function setPhotoStatus(text){
+    var el = $("ob-photo-status");
+    el.textContent = text || "";
+  }
+  tap($("ob-photo-camera-btn"), function(){ $("ob-photo-camera").click(); });
+  tap($("ob-photo-gallery-btn"), function(){ $("ob-photo-gallery").click(); });
+  $("ob-photo-camera").addEventListener("change", function(){
+    if(this.files && this.files[0]){ selectedPhoto = this.files[0]; setPhotoStatus("תמונה נבחרה."); }
+  });
+  $("ob-photo-gallery").addEventListener("change", function(){
+    if(this.files && this.files[0]){ selectedPhoto = this.files[0]; setPhotoStatus("תמונה נבחרה."); }
+  });
+
   tap($("ob-skip"), function(){
     card.hidden = true;
   });
@@ -291,8 +315,7 @@ function tap(el, fn){
     var name = $("ob-name").value.trim();
     if(!name){ setObMsg("צריך לכתוב שם.", "err"); return; }
 
-    var fileInput = $("ob-photo");
-    var file = fileInput.files && fileInput.files[0];
+    var file = selectedPhoto;
 
     $("ob-save").disabled = true;
     setObMsg("שומר…");
