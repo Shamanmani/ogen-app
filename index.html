@@ -485,6 +485,7 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
 .row{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
   gap:16px;
   padding:14px 0;
   border-bottom:1px solid var(--rule);
@@ -492,9 +493,10 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
 .row .thumb{width:62px;height:62px;border-radius:3px;overflow:hidden;border:1px solid var(--rule);flex:none;background:var(--raised)}
 .row .thumb svg,.row .thumb img{width:100%;height:100%;display:block;object-fit:cover}
 .row input[type=text]{
-  flex:1;min-width:0;font-family:inherit;font-size:19px;padding:12px 14px;
+  flex:1 1 160px;min-width:120px;font-family:inherit;font-size:19px;padding:12px 14px;
   border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
 }
+.row input[type=text].fact-input{flex-basis:100%}
 .row .stage-tag{font-size:15px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
 .mini{
   font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
@@ -1943,6 +1945,17 @@ function renderFamily(){
     relIn.type = "text"; relIn.value = p.relation; relIn.setAttribute("aria-label","קרבה");
     relIn.addEventListener("change", function(){ p.relation = relIn.value.trim(); save(); });
 
+    /*
+      עובדה קטנה - מוצגת רק במסך ההיכרות (שלב 0) בטאבלט. אין לזה שדה עריכה
+      נפרד עד עכשיו, מה שהשאיר טקסט ישן ולא רלוונטי אצל מי ששוכפל/שונה משם
+      דוגמה קיים. חשוב שיהיה אפשר לתקן או לרוקן את זה בלי לגעת בקוד.
+    */
+    var factIn = document.createElement("input");
+    factIn.type = "text"; factIn.value = p.fact || ""; factIn.className = "fact-input";
+    factIn.placeholder = "עובדה קטנה שמוצגת בהיכרות (אפשר להשאיר ריק)";
+    factIn.setAttribute("aria-label","עובדה קטנה");
+    factIn.addEventListener("change", function(){ p.fact = factIn.value.trim(); save(); });
+
     var stageTag = document.createElement("span");
     stageTag.className = "stage-tag";
     stageTag.textContent = p.stage >= 5 ? "יודע" : ("שלב " + p.stage + "/5");
@@ -1972,7 +1985,23 @@ function renderFamily(){
     });
 
     row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
-    row.appendChild(stageTag); row.appendChild(pick); row.appendChild(del);
+    row.appendChild(stageTag); row.appendChild(factIn);
+
+    /*
+      מי שכבר בשלב 0/1 (טרם עבר היכרות) יראה על הטאבלט קודם את השם עצמו,
+      ורק אחרי "הלאה" פעמיים יעבור לשאלת "מי זה". זה נכון למי שבאמת חדש -
+      אבל מי שממלאים מחדש רשומת דוגמה ישנה בשם אדם אמיתי שאבא כבר מכיר,
+      אין טעם שהוא "יכיר" אותו מההתחלה. הכפתור הזה מדלג ישר לשלב הזיהוי.
+    */
+    if(p.stage < 2){
+      var skip = document.createElement("button");
+      skip.className = "mini";
+      skip.textContent = "לדלג על ההיכרות";
+      tapFast(skip, function(){ p.stage = 2; save(); renderFamily(); });
+      row.appendChild(skip);
+    }
+
+    row.appendChild(pick); row.appendChild(del);
     box.appendChild(row);
   });
 
