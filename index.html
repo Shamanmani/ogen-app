@@ -745,6 +745,7 @@ if(typeof S.wordLevel !== "number") S.wordLevel = 1;
 if(typeof S.wordGood  !== "number") S.wordGood  = 0;
 if(!Array.isArray(S.occasions))     S.occasions = [];
 if(typeof S.todayNote !== "string") S.todayNote = "";
+if(!Array.isArray(S.importedPeopleIds)) S.importedPeopleIds = [];
 
 function applyZoom(){
   document.documentElement.style.setProperty("--zoom", String(S.zoom));
@@ -935,6 +936,38 @@ function loadFamilyQueue(cb){
     familyQueueError = true;
     cb();
   });
+}
+
+/*
+   דף המשפחה נותן לכל בן משפחה להקליד שם ולצרף תמונה, פעם אחת. הפונקציה
+   הזאת מביאה מה שהצטבר שם ומוסיפה אותם ל"אנשים לזהות" כאן בטאבלט —
+   כך שאבא לא צריך להקליד את הפרטים האלה בעצמו. אדם שכבר יובא לא יתווסף
+   שוב, גם אם דף המשפחה נטען שוב אצל אותו קרוב.
+*/
+function syncPeopleFromFamily(){
+  if(!sb) return;
+  sb.from("people").select("*").order("created_at",{ascending:true})
+    .then(function(res){
+      if(res.error || !res.data) return;
+      var added = false;
+      res.data.forEach(function(row){
+        if(!row || !row.id) return;
+        if(S.importedPeopleIds.indexOf(row.id) !== -1) return;
+        S.people.push({
+          id: "sync_" + row.id,
+          name: (row.name || "בן משפחה").trim(),
+          relation: "",
+          fact: "",
+          av: S.people.length % AVATARS.length,
+          photo: row.photo_url || null,
+          stage:0, due:0, misses:0, reps:0
+        });
+        S.importedPeopleIds.push(row.id);
+        added = true;
+      });
+      if(added){ save(); renderFamily(); }
+    })
+    .catch(function(){});
 }
 
 /* ---------------------------------------------------------------
@@ -1957,7 +1990,7 @@ tapFast($("reset-all"), function(){
   save(); applyZoom(); renderFamily(); renderHome();
 });
 
-tap($("open-family"), function(){ renderFamily(); show("s-family"); });
+tap($("open-family"), function(){ syncPeopleFromFamily(); renderFamily(); show("s-family"); });
 
 /* ---------------------------------------------------------------
    Wire the three cards
@@ -1980,6 +2013,7 @@ tapFast($("open-family-link"), function(){ window.open("family.html", "_blank");
 applyZoom();
 renderHome();
 loadFamilyQueue(function(){ renderHome(); });
+syncPeopleFromFamily();
 fit();
 })();
 if("serviceWorker" in navigator){

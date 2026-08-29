@@ -98,6 +98,22 @@ button.primary{
 button.primary:disabled{opacity:.5;cursor:default}
 button.primary:active{transform:translateY(1px)}
 
+button.quiet{
+  width:100%;
+  font-family:inherit;
+  font-size:16px;
+  font-weight:600;
+  padding:12px;
+  border:2px solid var(--rule);
+  border-radius:6px;
+  background:var(--raised);
+  color:var(--ink-soft);
+  cursor:pointer;
+  margin-top:8px;
+}
+button.quiet:disabled{opacity:.5;cursor:default}
+button.quiet:active{transform:translateY(1px)}
+
 .msg{font-size:15px;margin-top:12px;text-align:center}
 .msg.err{color:var(--pom)}
 .msg.ok{color:var(--moss)}
@@ -136,6 +152,18 @@ audio{width:100%;margin-top:6px}
 <div class="wrap">
   <h1>עוגן</h1>
   <p class="sub">שולחים שאלה לאבא, ורואים כאן כשהוא עונה.</p>
+
+  <div class="card" id="onboard-card" hidden>
+    <h2>איך קוראים לך, ואיך אתה נראה</h2>
+    <p class="sub" style="margin-bottom:16px">פעם אחת בלבד — כדי שאבא יזהה אותך גם במשחק "אנשים לזהות" בטאבלט שלו. אפשר גם לדלג על זה.</p>
+    <label for="ob-name">השם שלך</label>
+    <input type="text" id="ob-name" placeholder="למשל: דנה" autocomplete="name">
+    <label for="ob-photo">תמונה שלך</label>
+    <input type="file" id="ob-photo" accept="image/*">
+    <button class="primary" id="ob-save">שמור</button>
+    <button class="quiet" id="ob-skip" type="button">לדלג על זה</button>
+    <p class="msg" id="ob-msg"></p>
+  </div>
 
   <div class="card">
     <h2>שאלה חדשה</h2>
@@ -203,6 +231,105 @@ function setMsg(text, kind){
   el.textContent = text || "";
   el.className = "msg" + (kind ? " " + kind : "");
 }
+
+/* טאץ' פשוט, בלי דיבאונס כבד — זה דף למבוגרים צעירים יותר על הטלפון שלהם. */
+function tap(el, fn){
+  if(!el) return;
+  el.addEventListener("click", function(ev){ fn(ev); });
+}
+
+/* ---------------------------------------------------------------
+   שם ותמונה, פעם אחת: נשמר בטבלת people בסופאבייס ומזין משם גם את
+   המשחק "אנשים לזהות" בטאבלט - כדי שלא יצטרכו להקליד את זה שם ידנית.
+   מי שממלא לא רואה את זה שוב. מי שמדלג כן יראה את זה שוב בפעם הבאה,
+   כי הדילוג לא נשמר בזיכרון - זה תמיד אופציונלי, אף פעם לא חוסם.
+--------------------------------------------------------------- */
+(function(){
+  var card = $("onboard-card");
+  if(!card) return;
+  if(localStorage.getItem("ogen.family.onboarded")) return;
+  card.hidden = false;
+
+  try{
+    var savedName = localStorage.getItem("ogen.family.name");
+    if(savedName) $("ob-name").value = savedName;
+  }catch(e){}
+
+  function setObMsg(text, kind){
+    var el = $("ob-msg");
+    el.textContent = text || "";
+    el.className = "msg" + (kind ? " " + kind : "");
+  }
+
+  function shrinkToBlob(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var size = 320;
+        var c = document.createElement("canvas");
+        c.width = size; c.height = size;
+        var ctx = c.getContext("2d");
+        var scale = Math.max(size/img.width, size/img.height);
+        var w = img.width*scale, h = img.height*scale;
+        ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+        if(c.toBlob){ c.toBlob(function(blob){ cb(blob); }, "image/jpeg", 0.78); }
+        else{ cb(null); }
+      };
+      img.onerror = function(){ cb(null); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function(){ cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  tap($("ob-skip"), function(){
+    card.hidden = true;
+  });
+
+  tap($("ob-save"), function(){
+    var name = $("ob-name").value.trim();
+    if(!name){ setObMsg("צריך לכתוב שם.", "err"); return; }
+
+    var fileInput = $("ob-photo");
+    var file = fileInput.files && fileInput.files[0];
+
+    $("ob-save").disabled = true;
+    setObMsg("שומר…");
+
+    function insertPerson(photoUrl){
+      sb.from("people").insert({name:name, photo_url:photoUrl || null})
+        .then(function(res){
+          if(res.error) throw res.error;
+          try{
+            localStorage.setItem("ogen.family.onboarded", "1");
+            localStorage.setItem("ogen.family.name", name);
+          }catch(e){}
+          card.hidden = true;
+        })
+        .catch(function(){
+          setObMsg("משהו השתבש. אפשר לנסות שוב.", "err");
+          $("ob-save").disabled = false;
+        });
+    }
+
+    if(!file){ insertPerson(null); return; }
+
+    shrinkToBlob(file, function(blob){
+      if(!blob){ insertPerson(null); return; }
+      var path = "p_" + Date.now() + "_" + Math.random().toString(36).slice(2) + ".jpg";
+      sb.storage.from("people-photos").upload(path, blob, {contentType:"image/jpeg"})
+        .then(function(res){
+          if(res.error) throw res.error;
+          var pub = sb.storage.from("people-photos").getPublicUrl(path);
+          insertPerson(pub && pub.data ? pub.data.publicUrl : null);
+        })
+        .catch(function(){
+          insertPerson(null);
+        });
+    });
+  });
+})();
 
 function fmtDate(iso){
   try{
