@@ -306,7 +306,6 @@ body.dense .wordmark{font-size:28px}
 body.dense .orient-day{font-size:30px}
 body.dense .masthead{padding-bottom:6px}
 body.dense .greeting{font-size:30px;margin-bottom:4px}
-body.dense .family-link{padding-top:calc(14px * var(--d))}
 
 .choice{
   display:flex;
@@ -459,15 +458,19 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
 .seq li .yr{margin-inline-start:auto;font-family:"Assistant",sans-serif;font-size:19px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 
 /* ---------- family panel ---------- */
-.family-link{
-  margin-top:auto;
-  padding-top:calc(48px * var(--d));
-  text-align:center;
-  font-size:15px;
+/* כניסה שקטה בכוונה: זו הכניסה של הבן להגדרות, לא משהו שאבא אמור
+   לפגוש. שלוש נקודות קטנות בפינה, לא כפתור בזרימת שלושת הכרטיסים -
+   כדי שאצבע שרועדת ומחליקה בטעות לא תיפול עליה. */
+.masthead-right{display:flex;align-items:baseline;gap:6px}
+.menu-dots{
+  font-size:26px;
+  line-height:1;
+  padding:12px 10px;
   color:var(--ink-soft);
-  opacity:.65;
+  opacity:.4;
+  letter-spacing:1px;
 }
-.family-link button{font-size:15px;text-decoration:underline;padding:8px}
+.menu-dots:active{opacity:.9}
 
 .panel-h{
   font-family:"Frank Ruhl Libre",Georgia,serif;
@@ -524,7 +527,10 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
   <section class="screen active" id="s-home">
     <header class="masthead">
       <h1 class="wordmark">עוגן</h1>
-      <span class="today" id="today-date"></span>
+      <span class="masthead-right">
+        <span class="today" id="today-date"></span>
+        <button class="menu-dots" id="open-family" aria-label="הגדרות משפחה">⋮</button>
+      </span>
     </header>
 
     <!--
@@ -570,9 +576,6 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
       </button>
     </div>
 
-    <p class="family-link">
-      <button id="open-family">הגדרות משפחה</button>
-    </p>
   </section>
 
   <!-- ============ FACES ============ -->

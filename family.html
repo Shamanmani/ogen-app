@@ -136,6 +136,8 @@ button.quiet:active{transform:translateY(1px)}
 .q.answered .q-tag{color:var(--moss)}
 .q-text{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:19px;margin:0 0 8px}
 audio{width:100%;margin-top:6px}
+.q-actions{display:flex;gap:8px;margin-top:4px}
+.q textarea{margin-bottom:10px}
 .empty-note{color:var(--ink-soft);text-align:center;padding:20px 0}
 .refresh{
   display:block;
@@ -154,11 +156,11 @@ audio{width:100%;margin-top:6px}
 
 <div class="wrap">
   <h1>עוגן</h1>
-  <p class="sub">שולחים שאלה לאבא, ורואים כאן כשהוא עונה.</p>
+  <p class="sub">שולחים שאלה לסבא, ורואים כאן כשהוא עונה.</p>
 
   <div class="card" id="onboard-card" hidden>
     <h2>איך קוראים לך, ואיך אתה נראה</h2>
-    <p class="sub" style="margin-bottom:16px">פעם אחת בלבד — כדי שאבא יזהה אותך גם במשחק "אנשים לזהות" בטאבלט שלו. אפשר גם לדלג על זה.</p>
+    <p class="sub" style="margin-bottom:16px">פעם אחת בלבד — כדי שסבא יזהה אותך גם במשחק "אנשים לזהות" בטאבלט שלו. אפשר גם לדלג על זה.</p>
     <label for="ob-name">השם שלך</label>
     <input type="text" id="ob-name" placeholder="למשל: דנה" autocomplete="name">
     <label>תמונה שלך</label>
@@ -185,7 +187,7 @@ audio{width:100%;margin-top:6px}
     <label for="f-text">השאלה</label>
     <textarea id="f-text" placeholder="איך הכרת את אמא?"></textarea>
 
-    <button class="primary" id="send-btn">לשלוח לאבא</button>
+    <button class="primary" id="send-btn">לשלוח לסבא</button>
     <p class="msg" id="send-msg"></p>
   </div>
 
@@ -361,10 +363,22 @@ function fmtDate(iso){
   }catch(e){ return ""; }
 }
 
+/* מי אני, לצורך הצגת "לתקן/למחוק" רק על השאלות של עצמי - בלי חשבונות,
+   לפי אותו שם ששמור בדפדפן. זה אותו רמת אמון כמו שאר הדף. */
+function myNameKey(){
+  try{ return (localStorage.getItem("ogen.family.name") || "").trim().toLowerCase(); }
+  catch(e){ return ""; }
+}
+
+var lastRows = [];
+var editingId = null;   /* מזהה השאלה שנמצאת כרגע במצב עריכה, אם יש */
+
 function renderList(rows){
   var box = $("qlist");
   box.innerHTML = "";
   $("empty-note").hidden = !!(rows && rows.length);
+
+  var mine = myNameKey();
 
   (rows || []).forEach(function(q){
     var div = document.createElement("div");
@@ -379,19 +393,78 @@ function renderList(rows){
     tag.className = "q-tag";
     tag.textContent = (q.status === "answered" ? "נענתה" : "ממתינה") + " · " + fmtDate(q.created_at);
     head.appendChild(name); head.appendChild(tag);
-
-    var text = document.createElement("p");
-    text.className = "q-text";
-    text.textContent = q.question;
-
     div.appendChild(head);
-    div.appendChild(text);
 
-    if(q.status === "answered" && q.answer_audio_url){
-      var audio = document.createElement("audio");
-      audio.controls = true;
-      audio.src = q.answer_audio_url;
-      div.appendChild(audio);
+    /* אפשר לתקן/למחוק רק שאלה של עצמך שעוד לא נענתה - אחרי שאבא ענה,
+       השאלה כבר קשורה לתשובה שלו ואסור לזוז מתחתיה. */
+    var canEdit = !!mine && q.status === "waiting" && (q.from_name || "").trim().toLowerCase() === mine;
+
+    if(canEdit && editingId === q.id){
+      var ta = document.createElement("textarea");
+      ta.value = q.question;
+      div.appendChild(ta);
+
+      var editRow = document.createElement("div");
+      editRow.className = "q-actions";
+
+      var saveBtn = document.createElement("button");
+      saveBtn.type = "button"; saveBtn.className = "chip"; saveBtn.textContent = "לשמור";
+      tap(saveBtn, function(){
+        var newText = ta.value.trim();
+        if(!newText) return;
+        saveBtn.disabled = true;
+        sb.from("questions").update({question:newText}).eq("id", q.id)
+          .then(function(res){
+            if(res.error) throw res.error;
+            editingId = null;
+            loadQuestions();
+          })
+          .catch(function(){ saveBtn.disabled = false; });
+      });
+
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button"; cancelBtn.className = "chip"; cancelBtn.textContent = "לבטל";
+      tap(cancelBtn, function(){ editingId = null; renderList(lastRows); });
+
+      editRow.appendChild(saveBtn); editRow.appendChild(cancelBtn);
+      div.appendChild(editRow);
+    } else {
+      var text = document.createElement("p");
+      text.className = "q-text";
+      text.textContent = q.question;
+      div.appendChild(text);
+
+      if(q.status === "answered" && q.answer_audio_url){
+        var audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = q.answer_audio_url;
+        div.appendChild(audio);
+      }
+
+      if(canEdit){
+        var actions = document.createElement("div");
+        actions.className = "q-actions";
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button"; editBtn.className = "chip"; editBtn.textContent = "לתקן";
+        tap(editBtn, function(){ editingId = q.id; renderList(lastRows); });
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button"; delBtn.className = "chip"; delBtn.textContent = "למחוק";
+        tap(delBtn, function(){
+          if(!window.confirm("למחוק את השאלה הזו?")) return;
+          delBtn.disabled = true;
+          sb.from("questions").delete().eq("id", q.id)
+            .then(function(res){
+              if(res.error) throw res.error;
+              loadQuestions();
+            })
+            .catch(function(){ delBtn.disabled = false; });
+        });
+
+        actions.appendChild(editBtn); actions.appendChild(delBtn);
+        div.appendChild(actions);
+      }
     }
 
     box.appendChild(div);
@@ -409,17 +482,12 @@ function loadQuestions(){
         $("empty-note").textContent = "לא הצלחנו לטעון את השאלות כרגע. נסו לרענן עוד רגע.";
         return;
       }
-      renderList(res.data);
+      lastRows = res.data || [];
+      renderList(lastRows);
     });
 }
 
 tap($("refresh-btn"), loadQuestions);
-
-/* טאץ' פשוט, בלי דיבאונס כבד — זה דף למבוגרים צעירים יותר על הטלפון שלהם. */
-function tap(el, fn){
-  if(!el) return;
-  el.addEventListener("click", function(ev){ fn(ev); });
-}
 
 tap($("send-btn"), function(){
   var name = $("f-name").value.trim();
@@ -439,7 +507,7 @@ tap($("send-btn"), function(){
     .then(function(res){
       if(res.error) throw res.error;
       if(res.data && res.data.length){
-        setMsg("כבר יש לך שאלה שממתינה לתשובה של אבא. אפשר לשלוח שאלה נוספת אחרי שהוא יענה.", "err");
+        setMsg("כבר יש לך שאלה שממתינה לתשובה של סבא. אפשר לשלוח שאלה נוספת אחרי שהוא יענה.", "err");
         $("send-btn").disabled = false;
         return null;
       }
@@ -449,7 +517,7 @@ tap($("send-btn"), function(){
     .then(function(res){
       if(!res) return;
       if(res.error) throw res.error;
-      setMsg("נשלח! אבא יראה אותה בטאבלט שלו.", "ok");
+      setMsg("נשלח! סבא יראה אותה בטאבלט שלו.", "ok");
       $("f-text").value = "";
       $("send-btn").disabled = false;
       loadQuestions();
