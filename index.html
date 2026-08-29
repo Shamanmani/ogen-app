@@ -502,6 +502,7 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
   font-family:inherit;font-size:15px;font-weight:600;padding:10px 10px;min-height:44px;
   border:2px solid var(--rule);border-radius:3px;background:var(--raised);color:var(--ink);
 }
+.row .diff-auto-note{flex-basis:100%;font-size:14px;color:var(--ink-soft);padding-top:2px}
 .mini{
   font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;
   border:2px solid var(--rule);border-radius:3px;background:var(--raised);white-space:nowrap;
@@ -672,7 +673,7 @@ body.dense .greeting{font-size:30px;margin-bottom:4px}
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-occ">+ להוסיף תאריך</button></div>
 
     <h2 class="panel-h">האנשים</h2>
-    <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה. לכל אדם אפשר גם לבחור דרגת קושי בנפרד: קל עם ברירות לבחירה, רגיל, או קשה בלי שום רמז.</p>
+    <p class="panel-note">השמות והתמונות שאבא לומד. תמונה אמיתית עושה הבדל גדול — בלעדיה זה תרגיל, איתה זה המשפחה. לכל אדם אפשר גם לבחור דרגת קושי בנפרד: קל עם ברירות לבחירה, רגיל, או קשה בלי שום רמז. אם הוא מתקשה פעמיים ברצף, האפליקציה תרד לו זמנית רמה אחת מתחת למה שבחרתם, ותחזור לבד לרמה שבחרתם אחרי כמה הצלחות רצופות — התפריט תמיד ימשיך להראות את הבחירה המקורית שלכם, וכשזה קורה תופיע על כך הערה קטנה ליד השם.</p>
     <div id="people-rows"></div>
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-person">+ להוסיף אדם</button></div>
 
@@ -765,6 +766,9 @@ S.people.forEach(function(p){
   if(typeof p.misses !== "number") p.misses = 0;
   if(typeof p.reps   !== "number") p.reps   = 0;
   if(typeof p.difficulty !== "string") p.difficulty = "normal";
+  if(typeof p.diffMissStreak !== "number") p.diffMissStreak = 0;
+  if(typeof p.diffHitStreak  !== "number") p.diffHitStreak  = 0;
+  if(typeof p.autoStep       !== "number") p.autoStep       = 0;
 });
 if(typeof S.zoom !== "number" || !(S.zoom > 0)) S.zoom = 1;
 if(typeof S.wordIndex !== "number") S.wordIndex = 0;
@@ -1225,12 +1229,47 @@ function facesDone(actions, label){
   actions.appendChild(more);
 }
 
+/*
+  דרגת קושי אוטומטית וזמנית, על גבי הבחירה הידנית.
+
+  הבחירה בתפריט (p.difficulty) היא תמיד מה שהוא באמת בחר, ולא משתנה לבד -
+  זה מה שממשיך להופיע בהגדרות. p.autoStep הוא תוספת זמנית: 0 = בדיוק לפי
+  הבחירה, -1 = ירדנו לו רמה אחת למטה כרגע כי הוא התקשה. שתי הצלחות ברצף
+  לא "מוכיחות" הרבה, אבל רצף ארוך יותר כן - ולכן העלייה בחזרה דורשת יותר
+  הצלחות רצופות ממה שדרוש כשלונות כדי לרדת.
+*/
+var DIFF_ORDER = ["easy", "normal", "hard"];
+function diffIndex(d){ var i = DIFF_ORDER.indexOf(d); return i < 0 ? 1 : i; }
+function stepDownDifficulty(d){ return DIFF_ORDER[Math.max(0, diffIndex(d) - 1)]; }
+function effectiveDifficulty(p){
+  var base = p.difficulty || "normal";
+  return p.autoStep === -1 ? stepDownDifficulty(base) : base;
+}
+function updateAutoDifficulty(p, success){
+  var DEMOTE_AFTER = 2, PROMOTE_AFTER = 4;
+  if(success){
+    p.diffMissStreak = 0;
+    p.diffHitStreak = Math.min((p.diffHitStreak || 0) + 1, 999);
+    if(p.autoStep === -1 && p.diffHitStreak >= PROMOTE_AFTER){
+      p.autoStep = 0;
+      p.diffHitStreak = 0;
+    }
+  } else {
+    p.diffHitStreak = 0;
+    p.diffMissStreak = Math.min((p.diffMissStreak || 0) + 1, 999);
+    if(p.autoStep === 0 && p.diffMissStreak >= DEMOTE_AFTER && diffIndex(p.difficulty || "normal") > 0){
+      p.autoStep = -1;
+      p.diffMissStreak = 0;
+    }
+  }
+}
+
 function renderFaces(){
   facesPerson = duePerson();
   var p = facesPerson;
   if(!p) return;
 
-  var difficulty = p.difficulty || "normal";
+  var difficulty = effectiveDifficulty(p);
 
   $("faces-stage").textContent = STAGE_LABEL[Math.min(p.stage,5)];
   $("faces-portrait").innerHTML = portraitFor(p);
@@ -1385,7 +1424,7 @@ function logFaceResult(p, result){
     personId: p.id,
     personName: p.name,
     result: result,
-    difficulty: p.difficulty || "normal"
+    difficulty: effectiveDifficulty(p)
   });
   /* תקרה כדי שהיומן לא יגדל בלי סוף על פני שנות שימוש. */
   if(S.faceLog.length > 3000) S.faceLog.splice(0, S.faceLog.length - 3000);
@@ -1400,6 +1439,7 @@ function scoreFace(ok, actions){
      shorten the interval a little, and say so plainly. */
   if(ok === "tot"){
     logFaceResult(p, "tot");
+    updateAutoDifficulty(p, true);
     p.misses = 0;
     fb.className = "feedback good";
     fb.textContent = "זה קורה. הזיכרון היה שם.";
@@ -1413,6 +1453,7 @@ function scoreFace(ok, actions){
 
   if(ok){
     logFaceResult(p, "ok");
+    updateAutoDifficulty(p, true);
     p.misses = 0;
     fb.className = "feedback good";
     if(p.stage >= 5){
@@ -1432,6 +1473,7 @@ function scoreFace(ok, actions){
     }
   } else {
     logFaceResult(p, "miss");
+    updateAutoDifficulty(p, false);
     p.misses++;
     fb.className = "feedback gentle";
     fb.textContent = "זה " + p.name + ". נחזור אליו עוד מעט.";
@@ -2145,7 +2187,26 @@ function renderFamily(){
       if((p.difficulty || "normal") === opt[0]) o.selected = true;
       diffSel.appendChild(o);
     });
-    diffSel.addEventListener("change", function(){ p.difficulty = diffSel.value; save(); });
+    diffSel.addEventListener("change", function(){
+      p.difficulty = diffSel.value;
+      /* בחירה ידנית חדשה - מתחילים למדוד ביצועים מחדש מהרמה הזו. */
+      p.autoStep = 0; p.diffMissStreak = 0; p.diffHitStreak = 0;
+      save(); renderFamily();
+    });
+
+    /*
+      אם כמה טעויות רצופות הורידו אותו זמנית רמה אחת מתחת למה שנבחר כאן,
+      התפריט למעלה ממשיך להראות את הבחירה המקורית - וההערה הזו מסבירה
+      למה בפועל הוא רואה משהו קל יותר כרגע. חוזר לבד לתפריט אחרי כמה
+      הצלחות רצופות, בלי צורך לגעת בכלום.
+    */
+    var autoNote = null;
+    if(p.autoStep === -1){
+      autoNote = document.createElement("div");
+      autoNote.className = "diff-auto-note";
+      var effLabel = {easy:"קלה", normal:"רגילה", hard:"קשה"}[effectiveDifficulty(p)] || "רגילה";
+      autoNote.textContent = "כרגע ברמה " + effLabel + ", זמנית, עקב ביצועים קודמים.";
+    }
 
     var pick = document.createElement("label");
     pick.className = "mini";
@@ -2173,6 +2234,7 @@ function renderFamily(){
 
     row.appendChild(thumb); row.appendChild(nameIn); row.appendChild(relIn);
     row.appendChild(stageTag); row.appendChild(diffSel); row.appendChild(factIn);
+    if(autoNote) row.appendChild(autoNote);
 
     /*
       מי שכבר בשלב 0/1 (טרם עבר היכרות) יראה על הטאבלט קודם את השם עצמו,
