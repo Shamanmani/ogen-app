@@ -517,6 +517,7 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
 </head>
 <body>
 
+
 <div class="wrap">
 
   <!-- ============ HOME ============ -->
@@ -656,9 +657,8 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
     <div class="stack" style="margin-top:20px"><button class="mini" id="add-person">+ להוסיף אדם</button></div>
 
     <h2 class="panel-h">השאלות</h2>
-    <p class="panel-note">שאלה אחת ליום. הכי טובות הן כאלה שרק הוא יודע לענות עליהן.</p>
-    <div id="q-rows"></div>
-    <div class="stack" style="margin-top:20px"><button class="mini" id="add-question">+ להוסיף שאלה</button></div>
+    <p class="panel-note">השאלות מגיעות עכשיו ישירות מבני המשפחה, דרך קישור משותף אחד ששולחים להם. אבא רואה אותן ועונה בקול מתוך מסך "שאלה" בעצמו — אין יותר צורך להקליד אותן כאן.</p>
+    <div class="stack"><button class="mini" id="open-family-link">↗ לפתוח את דף השאלות למשפחה</button></div>
 
     <h2 class="panel-h">כיול לפי סרגל</h2>
     <p class="panel-note">פעם אחת בלבד, ולפני הכל. הצמידו סרגל אמיתי למסך והתאימו את הריבוע עד שהוא מודד בדיוק 25 מ״מ בשני הכיוונים. כל הכפתורים באפליקציה נגזרים מהמדידה הזו — בלעדיה הם יוצאים כחמישית קטנים מדי על טאבלט 10 אינץ׳.</p>
@@ -678,6 +678,7 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 "use strict";
@@ -686,6 +687,17 @@ body.dense .family-link{padding-top:calc(14px * var(--d))}
    State
 --------------------------------------------------------------- */
 var KEY = "ogen.v1";
+
+/* לולאת המשפחה: השאלות והתשובות עוברות דרך סופאבייס, לא מוקלדות כאן.
+   מפתח ה-anon הוא ציבורי במתכוון (מוגן ע"י מדיניות בצד השרת), בדיוק כמו
+   בדף המשפחה — קישור אחד משותף, בלי חשבונות. */
+var SUPABASE_URL = "https://evhtfbzmgacvviinxojb.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2aHRmYnptZ2FjdnZpaW54b2piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NDIyMDIsImV4cCI6MjEwMzUxODIwMn0.MsevkrWFZXXu-SwqDmb6VgNMhQsiTILw8o0EwXveTEg";
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+/* התור בפועל של שאלות שממתינות, נטען מסופאבייס כשנכנסים למסך "שאלה". */
+var familyQueue = [];
+var familyQueueError = false;
 
 var AVATARS = [
   {bg:"#DCE0CE", skin:"#E8C9A8", hair:"#3A2E22", style:"long",  glasses:false, beard:false},
@@ -704,13 +716,6 @@ function defaults(){
       {id:"p3", name:"ליאת",  relation:"המטפלת החדשה", fact:"באה בימי ראשון ושלישי.",          av:2, photo:null, stage:0, due:0, misses:0, reps:0},
       {id:"p4", name:"מיכל",  relation:"השכנה מקומה 2", fact:"מביאה עיתון בשבת בבוקר.",         av:4, photo:null, stage:0, due:0, misses:0, reps:0}
     ],
-    questions:[
-      {id:"q1", from:"דנה", text:"איפה למדת לרכוב על אופניים?",           done:false},
-      {id:"q2", from:"אורי", text:"מה הדבר הראשון שקנית מכסף שהרווחת?",   done:false},
-      {id:"q3", from:"דנה", text:"איך הכרת את אמא?",                      done:false},
-      {id:"q4", from:"שירה", text:"איזה משחק שיחקת כשהיית ילד?",           done:false}
-    ],
-    qIndex:0,
     puzzleIndex:0,
     wordIndex:0,
     wordLevel:1,
@@ -888,8 +893,48 @@ function duePerson(){
 }
 
 function currentQuestion(){
-  var open = S.questions.filter(function(q){ return !q.done; });
-  return open.length ? open[0] : null;
+  return familyQueue.length ? familyQueue[0] : null;
+}
+
+/*
+   טוען את השאלות הממתינות מסופאבייס, ומסדר אותן בהוגנות: מי שאבא ענה לו
+   הכי מעט עד עכשיו נכנס ראשון לתור, לא סתם מי ששאל קודם.
+*/
+function loadFamilyQueue(cb){
+  if(!sb){ familyQueue = []; familyQueueError = true; cb(); return; }
+  Promise.all([
+    sb.from("questions").select("*").eq("status","waiting").order("created_at",{ascending:true}),
+    sb.from("questions").select("from_name").eq("status","answered")
+  ]).then(function(results){
+    var waitingRes = results[0], answeredRes = results[1];
+    if(waitingRes.error || answeredRes.error){
+      familyQueue = [];
+      familyQueueError = true;
+      cb();
+      return;
+    }
+    var answeredCount = {};
+    (answeredRes.data || []).forEach(function(r){
+      var k = (r.from_name || "").trim().toLowerCase();
+      answeredCount[k] = (answeredCount[k] || 0) + 1;
+    });
+    var waiting = (waitingRes.data || []).slice();
+    waiting.sort(function(a, b){
+      var ka = (a.from_name || "").trim().toLowerCase();
+      var kb = (b.from_name || "").trim().toLowerCase();
+      var ca = answeredCount[ka] || 0;
+      var cbb = answeredCount[kb] || 0;
+      if(ca !== cbb) return ca - cbb;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+    familyQueue = waiting;
+    familyQueueError = false;
+    cb();
+  }).catch(function(){
+    familyQueue = [];
+    familyQueueError = true;
+    cb();
+  });
 }
 
 /* ---------------------------------------------------------------
@@ -1042,7 +1087,8 @@ function renderHome(){
   $("note-faces").textContent = p ? (p.name + ", " + p.relation) : "אין מה לחזור היום";
 
   var q = currentQuestion();
-  $("note-question").textContent = q ? (q.from + " שאלה אותך משהו") : "אין שאלה חדשה כרגע";
+  $("note-question").textContent = q ? (q.from_name + " שאלה אותך משהו")
+    : (familyQueueError ? "אין חיבור לאינטרנט כרגע" : "אין שאלה חדשה כרגע");
 
   $("note-puzzle").textContent = willOfferSeq()
     ? "ארבעה דברים לסדר לפי הזמן"
@@ -1282,7 +1328,7 @@ function scoreFace(ok, actions){
 /* ---------------------------------------------------------------
    Question — voice, because speaking costs him nothing
 --------------------------------------------------------------- */
-var mediaRec = null, chunks = [], recURL = null, recTimer = null, recStart = 0;
+var mediaRec = null, chunks = [], recURL = null, recBlob = null, recTimer = null, recStart = 0;
 
 /* One audio element only, ever. Tapping "listen again" while it plays stops it —
    otherwise repeated taps stack copies of the recording on top of each other. */
@@ -1309,14 +1355,16 @@ function renderQuestion(){
   $("rec-btn").classList.remove("recording");
 
   if(!q){
-    $("q-from").textContent = "אין שאלה חדשה";
-    $("q-text").textContent = "כשמישהו מהמשפחה ישאל אותך משהו, זה יופיע כאן.";
+    $("q-from").textContent = familyQueueError ? "אין חיבור" : "אין שאלה חדשה";
+    $("q-text").textContent = familyQueueError
+      ? "אין חיבור לאינטרנט כרגע. אפשר לנסות שוב עוד רגע."
+      : "כשמישהו מהמשפחה ישאל אותך משהו, זה יופיע כאן.";
     $("rec-btn").classList.add("hidden");
     return;
   }
   $("rec-btn").classList.remove("hidden");
-  $("q-from").textContent = "מ" + q.from;
-  $("q-text").textContent = q.text;
+  $("q-from").textContent = "מ" + q.from_name;
+  $("q-text").textContent = q.question;
 }
 
 function fmtTime(ms){
@@ -1349,7 +1397,8 @@ tap($("rec-btn"), function(){
       stream.getTracks().forEach(function(t){ t.stop(); });
       if(recURL) URL.revokeObjectURL(recURL);
       player = null;
-      recURL = URL.createObjectURL(new Blob(chunks, {type:"audio/webm"}));
+      recBlob = new Blob(chunks, {type:"audio/webm"});
+      recURL = URL.createObjectURL(recBlob);
       $("rec-btn").classList.remove("recording");
       $("rec-label").textContent = "להקליט שוב";
       $("q-feedback").className = "feedback good";
@@ -1392,35 +1441,74 @@ tap($("q-play"), function(){
 */
 tap($("q-send"), function(){
   var q = currentQuestion();
-  if(q) q.done = true;
-  S.done.question = true;
-  save();
-
   var fb = $("q-feedback");
-  fb.className = "feedback good";
-  fb.textContent = "נשלח" + (q ? " ל" + q.from : "") + ".";
-  $("rec-btn").classList.add("hidden");
-  stopPlayback();
-  $("q-play").classList.add("hidden");
-  $("q-send").classList.add("hidden");
+  $("q-send").disabled = true;
+  fb.className = "feedback";
+  fb.textContent = "שולח…";
 
-  var box = $("q-after");
-  box.innerHTML = "";
+  function afterSend(audioUrl){
+    var upd = q
+      ? sb.from("questions").update({
+          status:"answered",
+          answer_audio_url: audioUrl || null,
+          answered_at: new Date().toISOString()
+        }).eq("id", q.id)
+      : Promise.resolve({error:null});
 
-  var next = currentQuestion();
-  if(next){
-    var more = document.createElement("button");
-    more.className = "btn btn-quiet";
-    more.textContent = next.from + " שאל אותך משהו — לענות גם לו?";
-    tap(more, function(){ renderQuestion(); });
-    box.appendChild(more);
+    upd.then(function(res){
+      if(res && res.error) throw res.error;
+      if(q) familyQueue = familyQueue.filter(function(item){ return item.id !== q.id; });
+      S.done.question = true;
+      save();
+
+      $("q-send").disabled = false;
+      fb.className = "feedback good";
+      fb.textContent = "נשלח" + (q ? " ל" + q.from_name : "") + ".";
+      $("rec-btn").classList.add("hidden");
+      stopPlayback();
+      $("q-play").classList.add("hidden");
+      $("q-send").classList.add("hidden");
+
+      var box = $("q-after");
+      box.innerHTML = "";
+
+      var next = currentQuestion();
+      if(next){
+        var more = document.createElement("button");
+        more.className = "btn btn-quiet";
+        more.textContent = next.from_name + " שאל אותך משהו — לענות גם לו?";
+        tap(more, function(){ renderQuestion(); });
+        box.appendChild(more);
+      }
+
+      var done = document.createElement("button");
+      done.className = "btn btn-primary";
+      done.textContent = "מספיק להיום";
+      tap(done, function(){ renderHome(); show("s-home"); });
+      box.appendChild(done);
+    }).catch(function(){
+      $("q-send").disabled = false;
+      fb.className = "feedback gentle";
+      fb.textContent = "לא הצלחנו לשלוח כרגע. אפשר לנסות שוב.";
+    });
   }
 
-  var done = document.createElement("button");
-  done.className = "btn btn-primary";
-  done.textContent = "מספיק להיום";
-  tap(done, function(){ renderHome(); show("s-home"); });
-  box.appendChild(done);
+  if(recBlob && q && sb){
+    var path = q.id + "-" + Date.now() + ".webm";
+    sb.storage.from("answers").upload(path, recBlob, {contentType:"audio/webm"})
+      .then(function(res){
+        if(res.error) throw res.error;
+        var pub = sb.storage.from("answers").getPublicUrl(path);
+        afterSend(pub && pub.data ? pub.data.publicUrl : null);
+      })
+      .catch(function(){
+        $("q-send").disabled = false;
+        fb.className = "feedback gentle";
+        fb.textContent = "לא הצלחנו לשלוח כרגע. אפשר לנסות שוב.";
+      });
+  } else {
+    afterSend(null);
+  }
 });
 
 /* ---------------------------------------------------------------
@@ -1837,31 +1925,6 @@ function renderFamily(){
     box.appendChild(row);
   });
 
-  var qbox = $("q-rows");
-  qbox.innerHTML = "";
-  S.questions.forEach(function(q, idx){
-    var row = document.createElement("div");
-    row.className = "row";
-
-    var fromIn = document.createElement("input");
-    fromIn.type = "text"; fromIn.value = q.from; fromIn.style.maxWidth = "120px"; fromIn.setAttribute("aria-label","מי שואל");
-    fromIn.addEventListener("change", function(){ q.from = fromIn.value.trim() || q.from; save(); });
-
-    var txtIn = document.createElement("input");
-    txtIn.type = "text"; txtIn.value = q.text; txtIn.setAttribute("aria-label","השאלה");
-    txtIn.addEventListener("change", function(){ q.text = txtIn.value.trim() || q.text; save(); });
-
-    var tag = document.createElement("span");
-    tag.className = "stage-tag";
-    tag.textContent = q.done ? "נענתה" : "ממתינה";
-
-    var del = document.createElement("button");
-    del.className = "mini"; del.textContent = "הסרה";
-    tapFast(del, function(){ S.questions.splice(idx,1); save(); renderFamily(); });
-
-    row.appendChild(fromIn); row.appendChild(txtIn); row.appendChild(tag); row.appendChild(del);
-    qbox.appendChild(row);
-  });
 }
 
 tapFast($("add-occ"), function(){
@@ -1874,11 +1937,6 @@ tapFast($("add-person"), function(){
     id:"p" + Date.now(), name:"שם חדש", relation:"קרבה", fact:"",
     av:S.people.length % AVATARS.length, photo:null, stage:0, due:0, misses:0, reps:0
   });
-  save(); renderFamily();
-});
-
-tapFast($("add-question"), function(){
-  S.questions.push({id:"q" + Date.now(), from:"דנה", text:"שאלה חדשה", done:false});
   save(); renderFamily();
 });
 
@@ -1907,11 +1965,21 @@ tap($("open-family"), function(){ renderFamily(); show("s-family"); });
 /* One handler per card: render, then show. Two listeners on one button meant the
    debounce ate the second, and the screen opened empty. */
 tap($("card-faces"),    function(){ renderFaces();    show("s-faces");    });
-tap($("card-question"), function(){ renderQuestion(); show("s-question"); });
+tap($("card-question"), function(){
+  renderQuestion();
+  show("s-question");
+  $("q-from").textContent = "";
+  $("q-text").textContent = "טוען…";
+  $("rec-btn").classList.add("hidden");
+  loadFamilyQueue(function(){ renderQuestion(); fit(); });
+});
 tap($("card-puzzle"),   function(){ renderPuzzle();   show("s-puzzle");   });
+
+tapFast($("open-family-link"), function(){ window.open("family.html", "_blank"); });
 
 applyZoom();
 renderHome();
+loadFamilyQueue(function(){ renderHome(); });
 fit();
 })();
 if("serviceWorker" in navigator){
